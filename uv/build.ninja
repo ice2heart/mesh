@@ -1,0 +1,13 @@
+# how to https://ninja-build.org/manual.html#_using_ninja_for_your_project
+cflags = -Wall -std=gnu99
+lflags =  -luv -g
+
+rule cc
+  command = gcc $cflags -c $in -o $out
+rule link
+  command = gcc $in $lflags -o $out
+
+
+build main.o: cc main.c
+build hello: link main.o
+default hello
