@@ -5,7 +5,7 @@
 // 4 unregister
 const net = require('net');
 
-const users = {}
+const users = {};
 
 const sendUsers = () => {
   var list = [3];
@@ -18,7 +18,7 @@ const sendUsers = () => {
     users[key].write(new Buffer(list));
   });
   console.log(list);
-}
+};
 
 var server = net.createServer(function(sock) {
   console.log('CONNECTED: ' + sock.remoteAddress + ':' + sock.remotePort);
@@ -43,7 +43,8 @@ var server = net.createServer(function(sock) {
         break;
       case 4:
         var from = data.readInt16BE(1);
-        delete users.from;
+        delete users[from];
+        break;
       default:
     }
   });
