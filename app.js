@@ -13,7 +13,7 @@ const sendUsers = () => {
 
   Object.keys(users).forEach((key) => {
     list[pos] = 0;
-    list.writeInt16BE(pos + 1);
+    list.writeInt16BE(key, pos + 1);
     pos += 3;
   });
   Object.keys(users).forEach((key) => {
