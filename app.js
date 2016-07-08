@@ -8,7 +8,7 @@ const net = require('net');
 const users = {};
 
 const sendUsers = () => {
-  var list = [3];
+  var list = [];
 
   Object.keys(users).forEach((key) => {
     list.push(0);

@@ -10,7 +10,13 @@ uv_udp_t send_socket;
 uv_udp_t recv_socket;
 uv_timer_t heartbeat_timer;
 
+uv_tcp_t command_socket;
+uv_connect_t command_connect;
+
 uv_udp_send_t send_req;
+
+int is_ready;
+
 
 uint8_t state;
 
@@ -51,7 +57,11 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
         return;
     }
     if (state != 0){
-      printf("Data! %s\n", buf->base);
+      printf("Data! ");
+      for (size_t i = 0; i < nread; i++) {
+        printf("%x ", buf->base[i]);
+      }
+      printf("\n");
       return;
     }
 
@@ -76,7 +86,7 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
     uint8_t ip3 = 0;
     uint8_t ip4 = 0;
 
-    printf("Get data %x Id = %x%x%x\n", cookie, id1, id2,id3);
+    printf("Get data %x Id = %x%x%x\n", cookie, id1, id2, id3);
 
     while (attrLen - pos > 0) {
       int16_t type1 = get16BE(buf, 20 + pos);
@@ -88,7 +98,6 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
         ip2 = get8(buf, 29 + pos);
         ip3 = get8(buf, 30 + pos);
         ip4 = get8(buf, 31 + pos);
-        printf("protocol %d ip %d.%d.%d.%d %d\n", protocol, ip1, ip2, ip3, ip4, port);
       }
       if (type1 == XOR_MAPPED_ADDRESS){
         //Xor with magic cookie
@@ -98,8 +107,8 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
         ip2 = get8(buf, 29 + pos) ^ 0x12;
         ip3 = get8(buf, 30 + pos) ^ 0xa4;
         ip4 = get8(buf, 31 + pos) ^ 0x42;
-        printf("Xor protocol %d ip %d.%d.%d.%d %d\n", protocol, ip1, ip2, ip3, ip4, port);
       }
+      printf("protocol type %d %d ip %d.%d.%d.%d %d\n", type1 ,protocol, ip1, ip2, ip3, ip4, port);
       pos+=length1 + 4;
       printf("Attr length %d first type %d first length %d\n", attrLen, type1, length1);
     }
@@ -145,39 +154,81 @@ void on_heartbeat() {
   printf("Callback!\n" );
   uv_buf_t discover_msg = make_discover_msg();
   struct sockaddr_in send_addr;
-  uv_ip4_addr("216.93.246.18", 3478, &send_addr);
-  //uv_ip4_addr("173.194.72.127", 19302, &send_addr);
+  //uv_ip4_addr("216.93.246.18", 3478, &send_addr);
+  uv_ip4_addr("173.194.72.127", 19302, &send_addr);
   uv_udp_send(&send_req, &send_socket, &discover_msg, 1, (const struct sockaddr *)&send_addr, on_send);
+}
+
+void on_close(uv_handle_t* handle)
+{
+  printf("closed\n");
+}
+
+void on_write(uv_write_t* req, int status)
+{
+  printf("Send done status %d\n", status );
+  if (status) {
+    fprintf(stderr, "Read error %s\n", uv_err_name(status));
+		return;
+  }
+}
+
+void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
+{
+	if(nread >= 0) {
+    printf("Data! ");
+    for (size_t i = 0; i < nread; i++) {
+      printf("%x ", buf->base[i]);
+    }
+    printf("\n");
+	}
+	else {
+    uv_close((uv_handle_t*)tcp, on_close);
+	}
+	//cargo-culted
+	free(buf->base);
+}
+
+void on_connect(uv_connect_t* connection, int status) {
+  printf("Is connect\n" );
+  uv_stream_t* stream = connection->handle;
+
+  uv_buf_t buffer;
+  uv_write_t request;
+  alloc_buffer(NULL, 3, &buffer);
+  //command
+  buffer.base[0] = 0x00;
+  //name
+  buffer.base[1] = getRand();
+  buffer.base[2] = getRand();
+	uv_write(&request, stream, &buffer, 1, on_write);
+	uv_read_start(stream, alloc_buffer, on_read_tcp);
+
 }
 
 int main() {
     state = 0;
     loop = uv_default_loop();
 
-
-    /*uv_udp_init(loop, &recv_socket);
-    struct sockaddr_in recv_addr;
-    uv_ip4_addr("0.0.0.0", 1068, &recv_addr);
-    uv_udp_bind(&recv_socket, (const struct sockaddr *)&recv_addr, UV_UDP_REUSEADDR);
-    uv_udp_recv_start(&recv_socket, alloc_buffer, on_read);*/
-
     uv_udp_init(loop, &send_socket);
     struct sockaddr_in broadcast_addr;
     uv_ip4_addr("0.0.0.0", 0, &broadcast_addr);
     uv_udp_bind(&send_socket, (const struct sockaddr *)&broadcast_addr, UV_UDP_REUSEADDR);
-    //uv_udp_set_broadcast(&send_socket, 1);
+    uv_udp_set_broadcast(&send_socket, 1);
 
     uv_udp_recv_start(&send_socket, alloc_buffer, on_read); //слушаем ответ
+
+    uv_tcp_init(loop, &command_socket);
+    //uv_connect_t* connect = (uv_connect_t*)malloc(sizeof(uv_connect_t));
+    struct sockaddr_in dest;
+    uv_ip4_addr("5.189.11.250", 7007, &dest);
+
+    uv_tcp_connect(&command_connect, &command_socket, (const struct sockaddr*)&dest, on_connect);
 
     //uv_timer_init(loop, &heartbeat_timer);
     //uv_timer_start(&heartbeat_timer, on_heartbeat, 2000, 2000); //через 0 секунд каждые 2 секунды
 
-    /*uv_udp_send_t send_req;
-    uv_buf_t discover_msg = make_discover_msg();
 
-    struct sockaddr_in send_addr;
-    uv_ip4_addr("255.255.255.255", 1067, &send_addr);
-    uv_udp_send(&send_req, &send_socket, &discover_msg, 1, (const struct sockaddr *)&send_addr, on_send);*/
     on_heartbeat();
 
     return uv_run(loop, UV_RUN_DEFAULT);
