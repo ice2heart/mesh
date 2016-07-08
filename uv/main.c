@@ -6,6 +6,7 @@
 #include <uv.h>
 
 uv_loop_t *loop;
+uv_idle_t idler;
 uv_udp_t send_socket;
 uv_udp_t recv_socket;
 uv_timer_t heartbeat_timer;
@@ -18,6 +19,15 @@ uv_udp_send_t send_req;
 int is_ready;
 
 uint16_t our_id;
+
+uint16_t ids[10];
+uint8_t id_count;
+
+uint16_t port = 0;
+uint8_t ip1 = 0;
+uint8_t ip2 = 0;
+uint8_t ip3 = 0;
+uint8_t ip4 = 0;
 
 
 uint8_t state;
@@ -82,11 +92,7 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
     int16_t pos = 0;
 
     uint8_t protocol = 0x01;
-    uint16_t port = 0;
-    uint8_t ip1 = 0;
-    uint8_t ip2 = 0;
-    uint8_t ip3 = 0;
-    uint8_t ip4 = 0;
+
 
     printf("Get data %x Id = %x%x%x\n", cookie, id1, id2, id3);
 
@@ -145,7 +151,7 @@ uv_buf_t make_discover_msg() {
 }
 
 void on_send(uv_udp_send_t *req, int status) {
-    printf("Send done status %d\n", status );
+    //printf("Send done status %d\n", status );
     if (status) {
         fprintf(stderr, "Send error %s\n", uv_strerror(status));
         return;
@@ -153,7 +159,6 @@ void on_send(uv_udp_send_t *req, int status) {
 }
 
 void on_heartbeat() {
-  printf("Callback!\n" );
   uv_buf_t discover_msg = make_discover_msg();
   struct sockaddr_in send_addr;
   //uv_ip4_addr("216.93.246.18", 3478, &send_addr);
@@ -168,7 +173,7 @@ void on_close(uv_handle_t* handle)
 
 void on_write(uv_write_t* req, int status)
 {
-  printf("Send done status %d\n", status );
+  //printf("Send done status %d\n", status );
   if (status) {
     fprintf(stderr, "Read error %s\n", uv_err_name(status));
 		return;
@@ -183,11 +188,17 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 	}
 
   uint8_t message = get8(buf, 0);
-  uint8_t count = 0;
+
   switch (message) {
-    case 1:
-      count = (nread-1) / 3;
-      printf("List of users, count %d\n",  count);
+    case 3:{
+      id_count = (nread-1) / 3;
+      printf("List of users, count %d\n",  id_count);
+      for (int i = 0; i < id_count; i++){
+        int16_t id = get16BE(buf, 2 + (i*3));
+        printf("Ids %d\n", id);
+        ids[i] = id;
+      }
+    }
     break;
     default:
     break;
@@ -214,6 +225,14 @@ void on_connect(uv_connect_t* connection, int status) {
 
 }
 
+void wait_two_id(uv_idle_t* handle) {
+    if (id_count > 1){
+      printf("Yay! Our is 2\n");
+      uv_idle_stop(handle);
+    }
+
+}
+
 int main() {
     state = 0;
     loop = uv_default_loop();
@@ -232,6 +251,9 @@ int main() {
     uv_ip4_addr("5.189.11.250", 7007, &dest);
 
     uv_tcp_connect(&command_connect, &command_socket, (const struct sockaddr*)&dest, on_connect);
+
+    uv_idle_init(uv_default_loop(), &idler);
+    uv_idle_start(&idler, wait_two_id);
 
     //uv_timer_init(loop, &heartbeat_timer);
     //uv_timer_start(&heartbeat_timer, on_heartbeat, 2000, 2000); //через 0 секунд каждые 2 секунды
