@@ -8,14 +8,16 @@ const net = require('net');
 const users = {};
 
 const sendUsers = () => {
-  var list = [];
+  var list = new Buffer(Object.keys(users).length * 3);
+  var pos = 0;
 
   Object.keys(users).forEach((key) => {
-    list.push(0);
-    list.push(key);
+    list[pos] = 0;
+    list.writeInt16BE(pos + 1);
+    pos += 3;
   });
   Object.keys(users).forEach((key) => {
-    users[key].write(new Buffer(list));
+    users[key].write(list);
   });
   console.log(list);
 };
