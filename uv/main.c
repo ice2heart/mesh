@@ -17,6 +17,8 @@ uv_udp_send_t send_req;
 
 int is_ready;
 
+uint16_t our_id;
+
 
 uint8_t state;
 
@@ -175,17 +177,22 @@ void on_write(uv_write_t* req, int status)
 
 void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 {
-	if(nread >= 0) {
-    printf("Data! ");
-    for (size_t i = 0; i < nread; i++) {
-      printf("%x ", buf->base[i]);
-    }
-    printf("\n");
-	}
-	else {
+	if(nread < 0) {
     uv_close((uv_handle_t*)tcp, on_close);
+    free(buf->base);
 	}
-	//cargo-culted
+
+  uint8_t message = get8(buf, 0);
+  uint8_t count = 0;
+  switch (message) {
+    case 1:
+      count = (nread-1) / 3;
+      printf("List of users, count %d\n",  count);
+    break;
+    default:
+    break;
+  }
+
 	free(buf->base);
 }
 
@@ -201,6 +208,7 @@ void on_connect(uv_connect_t* connection, int status) {
   //name
   buffer.base[1] = getRand();
   buffer.base[2] = getRand();
+  our_id = get16BE(&buffer, 1);
 	uv_write(&request, stream, &buffer, 1, on_write);
 	uv_read_start(stream, alloc_buffer, on_read_tcp);
 

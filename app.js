@@ -1,15 +1,16 @@
 // 0 register
 // 1 current users
 // 2 send to user
-// 3
+// 3 usreslist
 // 4 unregister
 const net = require('net');
 
 const users = {};
 
 const sendUsers = () => {
-  var list = new Buffer(Object.keys(users).length * 3);
-  var pos = 0;
+  var list = new Buffer((Object.keys(users).length * 3) + 1);
+  list[0] = 3;
+  var pos = 1;
 
   Object.keys(users).forEach((key) => {
     list[pos] = 0;
