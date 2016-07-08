@@ -194,7 +194,7 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
       id_count = (nread-1) / 3;
       printf("List of users, count %d\n",  id_count);
       for (int i = 0; i < id_count; i++){
-        int16_t id = get16BE(buf, 2 + (i*3));
+        uint16_t id = get16BE(buf, 2 + (i*3));
         printf("Ids %d\n", id);
         ids[i] = id;
       }
@@ -232,6 +232,7 @@ void on_connect(uv_connect_t* connection, int status) {
 void wait_two_id(uv_idle_t* handle) {
     if (id_count > 1){
       printf("Yay! Our is 2\n");
+      тут надо добавить передачу айпишника
       uv_idle_stop(handle);
     }
 
