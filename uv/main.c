@@ -209,6 +209,10 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 
 void on_connect(uv_connect_t* connection, int status) {
   printf("Is connect\n" );
+  if (status) {
+    fprintf(stderr, "Read error %s\n", uv_err_name(status));
+		return;
+  }
   uv_stream_t* stream = connection->handle;
 
   uv_buf_t buffer;
@@ -233,7 +237,12 @@ void wait_two_id(uv_idle_t* handle) {
 
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc < 2 ){
+      printf("Use ./hello 5.189.11.250\n");
+      return(-1);
+    }
+    srand(time(NULL));
     state = 0;
     loop = uv_default_loop();
 
@@ -248,8 +257,8 @@ int main() {
     uv_tcp_init(loop, &command_socket);
     //uv_connect_t* connect = (uv_connect_t*)malloc(sizeof(uv_connect_t));
     struct sockaddr_in dest;
-    uv_ip4_addr("5.189.11.250", 7007, &dest);
 
+    uv_ip4_addr(argv[1], 7007, &dest);
     uv_tcp_connect(&command_connect, &command_socket, (const struct sockaddr*)&dest, on_connect);
 
     uv_idle_init(uv_default_loop(), &idler);
