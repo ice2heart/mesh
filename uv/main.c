@@ -53,6 +53,11 @@ int16_t get16BE(const uv_buf_t *buf, int shift) {
   return (uint8_t) buf->base[shift+1] | (uint8_t)buf->base[shift] << 8;
 }
 
+void set16BE(const uv_buf_t *buf, uint16_t data, int shift) {
+  buf->base[shift] = (uint8_t) (0xFF00 & data) >> 8;
+  buf->base[shift+1] = (uint8_t) (0xFF & data);
+}
+
 int32_t get32BE(const uv_buf_t *buf, int shift) {
   return (uint8_t) buf->base[shift+3] | (uint8_t) buf->base[shift+2] << 8 |(uint8_t) buf->base[shift+1] << 16 | (uint8_t)buf->base[shift] << 24;
 }
@@ -163,6 +168,7 @@ void on_heartbeat() {
   struct sockaddr_in send_addr;
   //uv_ip4_addr("216.93.246.18", 3478, &send_addr);
   uv_ip4_addr("173.194.72.127", 19302, &send_addr);
+  //uv_ip4_addr("91.213.144.172", 19302, &send_addr); //turn.sbis.ru
   uv_udp_send(&send_req, &send_socket, &discover_msg, 1, (const struct sockaddr *)&send_addr, on_send);
 }
 
@@ -232,7 +238,19 @@ void on_connect(uv_connect_t* connection, int status) {
 void wait_two_id(uv_idle_t* handle) {
     if (id_count > 1){
       printf("Yay! Our is 2\n");
-      тут надо добавить передачу айпишника
+      for (int i = 0; i<id_count; i++){
+        if (ids[i] != our_id){
+          uv_buf_t buffer;
+          uv_write_t request;
+          alloc_buffer(NULL, 8, &buffer);
+          buffer.base[0] = 0x02;
+          set16BE(&buffer, ids[i], 1);
+          strcmp(buffer.base + 3, "test");
+
+          uv_write(&request, command_connect.handle, &buffer, 1, on_write);
+        }
+      }
+      //тут надо добавить передачу айпишника
       uv_idle_stop(handle);
     }
 

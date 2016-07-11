@@ -38,7 +38,7 @@ var server = net.createServer(function(sock) {
         break;
       case 2:
         var to = data.readInt16BE(1);
-        var newBuff = new Buffer(data, 3);
+        var newBuff = data.slice(3);
         //console.log(to, newBuff, users[to]);
         if (users[to]) {
           users[to].write(newBuff);
