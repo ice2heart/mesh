@@ -31,6 +31,13 @@ uint8_t ip2 = 0;
 uint8_t ip3 = 0;
 uint8_t ip4 = 0;
 
+uint16_t sport = 0;
+uint8_t sip1 = 0;
+uint8_t sip2 = 0;
+uint8_t sip3 = 0;
+uint8_t sip4 = 0;
+
+
 
 uint8_t state;
 
@@ -178,7 +185,7 @@ void on_send(uv_udp_send_t *req, int status) {
     }
 }
 
-void on_heartbeat() {
+void stun_request() {
   uv_buf_t discover_msg = make_discover_msg();
   struct sockaddr_in send_addr;
   //uv_ip4_addr("216.93.246.18", 3478, &send_addr);
@@ -201,6 +208,24 @@ void on_write(uv_write_t* req, int status)
   }
 }
 
+void on_heartbeat() {
+  uv_buf_t buffer;
+
+  alloc_buffer(NULL, 5, &buffer);
+  buffer.base[0] = 'p';
+  buffer.base[1] = 'i';
+  buffer.base[2] = 'n';
+  buffer.base[3] = 'g';
+  buffer.base[4] = '\0';
+  struct sockaddr_in send_addr;
+  char tmp[15];
+  sprintf(tmp, "%d.%d.%d.%d", sip1, sip2, sip3, sip4);
+
+  uv_ip4_addr(tmp, sport, &send_addr);
+
+  uv_udp_send(&send_req, &send_socket, &buffer, 1, (const struct sockaddr *)&send_addr, on_send);
+}
+
 void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 {
 	if(nread < 0) {
@@ -208,8 +233,6 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
     free(buf->base);
 	}
   printf("%s read data %lu\n", __FUNCTION__, nread);
-  if (nread < 1000)
-    printBuff(buf->base, nread);
 
   uint8_t message = get8(buf, 0);
 
@@ -217,6 +240,13 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
     case 2:{
       printf("2");
       printBuff(buf->base, nread);
+      sip1 = get8(buf, 1);
+      sip2 = get8(buf, 2);
+      sip3 = get8(buf, 3);
+      sip4 = get8(buf, 4);
+      sport = get16BE(buf, 5);
+      uv_timer_init(loop, &heartbeat_timer);
+      uv_timer_start(&heartbeat_timer, on_heartbeat, 1000, 1000); //через 0 секунд каждые 2 секунды
     }
     break;
     case 3:{
@@ -315,11 +345,10 @@ int main(int argc, char* argv[]) {
     uv_idle_init(uv_default_loop(), &idler);
     uv_idle_start(&idler, wait_two_id);
 
-    //uv_timer_init(loop, &heartbeat_timer);
-    //uv_timer_start(&heartbeat_timer, on_heartbeat, 2000, 2000); //через 0 секунд каждые 2 секунды
 
 
-    on_heartbeat();
+
+    stun_request();
 
     return uv_run(loop, UV_RUN_DEFAULT);
 }
