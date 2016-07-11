@@ -15,6 +15,7 @@ uv_tcp_t command_socket;
 uv_connect_t command_connect;
 
 uv_udp_send_t send_req;
+uv_write_t request;
 
 int is_ready;
 
@@ -77,7 +78,7 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
       return;
     }
     if (nread < 0) {
-        fprintf(stderr, "Read error %s\n", uv_err_name(nread));
+        fprintf(stderr, "Read udp error %s\n", uv_err_name(nread));
         uv_close((uv_handle_t*) req, NULL);
         free(buf->base);
         return;
@@ -190,7 +191,7 @@ void on_write(uv_write_t* req, int status)
 {
   //printf("Send done status %d\n", status );
   if (status) {
-    fprintf(stderr, "Read error %s\n", uv_err_name(status));
+    fprintf(stderr, "On write error %d %s\n", status, uv_err_name(status));
 		return;
   }
 }
@@ -201,10 +202,15 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
     uv_close((uv_handle_t*)tcp, on_close);
     free(buf->base);
 	}
+  printf("%s read data %ld\n", __FUNCTION__, nread);
 
   uint8_t message = get8(buf, 0);
 
   switch (message) {
+    case 2:{
+      printBuff(buf->base, nread);
+    }
+    break;
     case 3:{
       id_count = (nread-1) / 3;
       printf("List of users, count %d\n",  id_count);
@@ -213,10 +219,6 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
         printf("Ids %x\n", id);
         ids[i] = id;
       }
-    }
-    break;
-    case 2:{
-      printBuff(buf->base, nread);
     }
     break;
     default:
@@ -254,7 +256,7 @@ void wait_two_id(uv_idle_t* handle) {
       for (int i = 0; i<id_count; i++){
         if (ids[i] != our_id){
           uv_buf_t buffer;
-          uv_write_t request;
+
           alloc_buffer(NULL, 8, &buffer);
           buffer.base[0] = 0x02;
           set16BE(&buffer, ids[i], 1);
