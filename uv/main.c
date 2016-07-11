@@ -19,6 +19,7 @@ uv_write_t request;
 
 int is_ready;
 
+
 uint16_t our_id;
 
 uint16_t ids[10];
@@ -54,14 +55,18 @@ int16_t get16BE(const uv_buf_t *buf, int shift) {
   return (uint8_t) buf->base[shift+1] | (uint8_t)buf->base[shift] << 8;
 }
 
+int32_t get32BE(const uv_buf_t *buf, int shift) {
+  return (uint8_t) buf->base[shift+3] | (uint8_t) buf->base[shift+2] << 8 |(uint8_t) buf->base[shift+1] << 16 | (uint8_t)buf->base[shift] << 24;
+}
+
+void set8(const uv_buf_t *buf, uint8_t data, int shift) {
+  buf->base[shift] = data;
+}
+
 void set16BE(const uv_buf_t *buf, uint16_t data, int shift) {
   buf->base[shift] = (0xFF00 & data) >> 8;
   buf->base[shift+1] = (0xFF & data);
   //printf("%x %x %x\n", (uint16_t)data,  (0xFF00 & data) >> 8, (uint8_t) (0xFF & data));
-}
-
-int32_t get32BE(const uv_buf_t *buf, int shift) {
-  return (uint8_t) buf->base[shift+3] | (uint8_t) buf->base[shift+2] << 8 |(uint8_t) buf->base[shift+1] << 16 | (uint8_t)buf->base[shift] << 24;
 }
 
 void printBuff(const char *data, uint16_t size){
@@ -73,7 +78,7 @@ void printBuff(const char *data, uint16_t size){
 }
 
 void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
-    printf("%s data size %ld\n", __FUNCTION__, nread);
+    printf("%s data size %lu\n", __FUNCTION__, nread);
     if (nread == 0) {
       return;
     }
@@ -202,7 +207,8 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
     uv_close((uv_handle_t*)tcp, on_close);
     free(buf->base);
 	}
-  printf("%s read data %ld\n", __FUNCTION__, nread);
+  printf("%s read data %lu\n", __FUNCTION__, nread);
+  printBuff(buf->base, nread);
 
   uint8_t message = get8(buf, 0);
 
@@ -229,10 +235,9 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 }
 
 void on_connect(uv_connect_t* connection, int status) {
-  printf("Is connect\n" );
   if (status) {
     fprintf(stderr, "Read error %s\n", uv_err_name(status));
-		return;
+    exit(1);
   }
   uv_stream_t* stream = connection->handle;
 
@@ -251,24 +256,31 @@ void on_connect(uv_connect_t* connection, int status) {
 }
 
 void wait_two_id(uv_idle_t* handle) {
-    if (id_count > 1){
+    if (id_count > 1 && state == 1){
       printf("Yay! Our is 2\n");
       for (int i = 0; i<id_count; i++){
         if (ids[i] != our_id){
           uv_buf_t buffer;
 
-          alloc_buffer(NULL, 8, &buffer);
+          alloc_buffer(NULL, 1, &buffer);
           buffer.base[0] = 0x02;
           set16BE(&buffer, ids[i], 1);
-          char tmp[] = "test";
-          memcpy(buffer.base + 3, tmp , sizeof(tmp));
-          printf("Ids i = %x\n", ids[i]);
-          printBuff(buffer.base, 8);
+          set16BE(&buffer, 0x02, 3);
+          //ip
+          set8(&buffer, ip1, 5);
+          set8(&buffer, ip2, 6);
+          set8(&buffer, ip3, 7);
+          set8(&buffer, ip4, 8);
+          //port
+          set16BE(&buffer, port, 9);
+          //char tmp[] = "test";
+          //memcpy(buffer.base + 3, tmp , sizeof(tmp));
+          //printf("Ids i = %x\n", ids[i]);
+          printBuff(buffer.base, 11);
 
           uv_write(&request, command_connect.handle, &buffer, 1, on_write);
         }
       }
-      //тут надо добавить передачу айпишника
       uv_idle_stop(handle);
     }
 
@@ -281,6 +293,7 @@ int main(int argc, char* argv[]) {
     }
     srand(time(NULL));
     state = 0;
+    is_ready = 0;
     loop = uv_default_loop();
 
     uv_udp_init(loop, &send_socket);
@@ -292,7 +305,6 @@ int main(int argc, char* argv[]) {
     uv_udp_recv_start(&send_socket, alloc_buffer, on_read); //слушаем ответ
 
     uv_tcp_init(loop, &command_socket);
-    //uv_connect_t* connect = (uv_connect_t*)malloc(sizeof(uv_connect_t));
     struct sockaddr_in dest;
 
     uv_ip4_addr(argv[1], 7007, &dest);
