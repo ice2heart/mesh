@@ -54,12 +54,21 @@ int16_t get16BE(const uv_buf_t *buf, int shift) {
 }
 
 void set16BE(const uv_buf_t *buf, uint16_t data, int shift) {
-  buf->base[shift] = (uint8_t) (0xFF00 & data) >> 8;
-  buf->base[shift+1] = (uint8_t) (0xFF & data);
+  buf->base[shift] = (0xFF00 & data) >> 8;
+  buf->base[shift+1] = (0xFF & data);
+  //printf("%x %x %x\n", (uint16_t)data,  (0xFF00 & data) >> 8, (uint8_t) (0xFF & data));
 }
 
 int32_t get32BE(const uv_buf_t *buf, int shift) {
   return (uint8_t) buf->base[shift+3] | (uint8_t) buf->base[shift+2] << 8 |(uint8_t) buf->base[shift+1] << 16 | (uint8_t)buf->base[shift] << 24;
+}
+
+void printBuff(const char *data, uint16_t size){
+  printf("Buffer: ");
+  for (size_t i = 0; i < size; i++) {
+    printf("%x ", (uint8_t)data[i]);
+  }
+  printf("\n");
 }
 
 void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
@@ -201,9 +210,13 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
       printf("List of users, count %d\n",  id_count);
       for (int i = 0; i < id_count; i++){
         uint16_t id = get16BE(buf, 2 + (i*3));
-        printf("Ids %d\n", id);
+        printf("Ids %x\n", id);
         ids[i] = id;
       }
+    }
+    break;
+    case 2:{
+      printBuff(buf->base, nread);
     }
     break;
     default:
@@ -245,7 +258,10 @@ void wait_two_id(uv_idle_t* handle) {
           alloc_buffer(NULL, 8, &buffer);
           buffer.base[0] = 0x02;
           set16BE(&buffer, ids[i], 1);
-          strcmp(buffer.base + 3, "test");
+          char tmp[] = "test";
+          memcpy(buffer.base + 3, tmp , sizeof(tmp));
+          printf("Ids i = %x\n", ids[i]);
+          printBuff(buffer.base, 8);
 
           uv_write(&request, command_connect.handle, &buffer, 1, on_write);
         }
