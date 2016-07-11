@@ -28,7 +28,7 @@ var server = net.createServer(function(sock) {
 
   sock.on('data', function(data) {
     var command = data.readInt8();
-    console.log('data coomand = ' + command + ' ' + data);
+    //console.log('data coomand = ' + command + ' ' + data);
     switch (command) {
       case 0:
         var name = data.readInt16BE(1);

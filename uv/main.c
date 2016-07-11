@@ -208,7 +208,8 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
     free(buf->base);
 	}
   printf("%s read data %lu\n", __FUNCTION__, nread);
-  printBuff(buf->base, nread);
+  if (nread < 1000)
+    printBuff(buf->base, nread);
 
   uint8_t message = get8(buf, 0);
 
@@ -262,8 +263,8 @@ void wait_two_id(uv_idle_t* handle) {
         if (ids[i] != our_id){
           uv_buf_t buffer;
 
-          alloc_buffer(NULL, 1, &buffer);
-          buffer.base[0] = 0x02;
+          alloc_buffer(NULL, 11, &buffer);
+          set8(&buffer, 0x02, 0);
           set16BE(&buffer, ids[i], 1);
           set16BE(&buffer, 0x02, 3);
           //ip
