@@ -215,6 +215,7 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 
   switch (message) {
     case 2:{
+      printf("2");
       printBuff(buf->base, nread);
     }
     break;
@@ -263,17 +264,17 @@ void wait_two_id(uv_idle_t* handle) {
         if (ids[i] != our_id){
           uv_buf_t buffer;
 
-          alloc_buffer(NULL, 11, &buffer);
+          alloc_buffer(NULL, 10, &buffer);
           set8(&buffer, 0x02, 0);
           set16BE(&buffer, ids[i], 1);
-          set16BE(&buffer, 0x02, 3);
+          set8(&buffer, 0x02, 3);
           //ip
-          set8(&buffer, ip1, 5);
-          set8(&buffer, ip2, 6);
-          set8(&buffer, ip3, 7);
-          set8(&buffer, ip4, 8);
+          set8(&buffer, ip1, 4);
+          set8(&buffer, ip2, 5);
+          set8(&buffer, ip3, 6);
+          set8(&buffer, ip4, 7);
           //port
-          set16BE(&buffer, port, 9);
+          set16BE(&buffer, port, 8);
           //char tmp[] = "test";
           //memcpy(buffer.base + 3, tmp , sizeof(tmp));
           //printf("Ids i = %x\n", ids[i]);
