@@ -85,7 +85,7 @@ void printBuff(const char *data, uint16_t size){
 }
 
 void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
-    printf("%s data size %lu\n", __FUNCTION__, nread);
+    //printf("%s data size %lu\n", __FUNCTION__, nread);
     if (nread == 0) {
       return;
     }
@@ -245,6 +245,7 @@ void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
       sip3 = get8(buf, 3);
       sip4 = get8(buf, 4);
       sport = get16BE(buf, 5);
+      printf("Get ip addr %d.%d.%d.%d:%d\n", sip1, sip2, sip3, sip4, sport);
       uv_timer_init(loop, &heartbeat_timer);
       uv_timer_start(&heartbeat_timer, on_heartbeat, 1000, 1000); //через 0 секунд каждые 2 секунды
     }
