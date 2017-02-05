@@ -57,7 +57,6 @@ var server = net.createServer(function(sock) {
     console.log('CLOSED: ' + sock.remoteAddress + ' ' + sock.remotePort);
     delete users[sock.iid];
   });
-  //socket.pipe(socket);
 });
 
 server.listen(7007);
