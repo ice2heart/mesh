@@ -1,6 +1,6 @@
 # how to https://ninja-build.org/manual.html#_using_ninja_for_your_project
-cflags = -Wall -std=gnu99
-lflags =  -luv -g
+cflags = -Wall -std=gnu99 -I ./libuv/include
+lflags =  -L./libuv/out/Release -luv -lpthread  -g
 
 rule cc
   command = gcc $cflags -c $in -o $out
@@ -9,5 +9,5 @@ rule link
 
 
 build main.o: cc main.c
-build hello: link main.o
-default hello
+build sm: link main.o
+default sm
