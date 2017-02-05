@@ -188,8 +188,8 @@ void on_send(uv_udp_send_t *req, int status) {
 void stun_request() {
   uv_buf_t discover_msg = make_discover_msg();
   struct sockaddr_in send_addr;
-  //uv_ip4_addr("216.93.246.18", 3478, &send_addr);
-  uv_ip4_addr("173.194.72.127", 19302, &send_addr);
+  uv_ip4_addr("216.93.246.18", 3478, &send_addr);
+  //uv_ip4_addr("173.194.72.127", 19302, &send_addr);
   //uv_ip4_addr("91.213.144.172", 19302, &send_addr); //turn.sbis.ru
   uv_udp_send(&send_req, &send_socket, &discover_msg, 1, (const struct sockaddr *)&send_addr, on_send);
 }
@@ -322,7 +322,8 @@ void wait_two_id(uv_idle_t* handle) {
 int main(int argc, char* argv[]) {
     if (argc < 2 ){
       printf("Use ./hello 5.189.11.250\n");
-      return(-1);
+      //return(-1);
+
     }
     srand(time(NULL));
     state = 0;
@@ -340,16 +341,18 @@ int main(int argc, char* argv[]) {
     uv_tcp_init(loop, &command_socket);
     struct sockaddr_in dest;
 
-    uv_ip4_addr(argv[1], 7007, &dest);
+    if (argc < 2 ){
+        uv_ip4_addr("192.168.88.102", 7007, &dest);
+    } else {
+        uv_ip4_addr(argv[1], 7007, &dest);
+    }
+
     uv_tcp_connect(&command_connect, &command_socket, (const struct sockaddr*)&dest, on_connect);
 
     uv_idle_init(uv_default_loop(), &idler);
     uv_idle_start(&idler, wait_two_id);
 
 
-
-
     stun_request();
-
     return uv_run(loop, UV_RUN_DEFAULT);
 }
