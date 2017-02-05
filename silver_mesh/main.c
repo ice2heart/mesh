@@ -46,48 +46,48 @@ const uint8_t XOR_MAPPED_ADDRESS = 0x0020;
 const uint16_t SUCCESS_RESPONSE = 0x0101;
 
 void alloc_buffer(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-  buf->base = malloc(suggested_size);
-  buf->len = suggested_size;
+    buf->base = malloc(suggested_size);
+    buf->len = suggested_size;
 }
 
 int getRand() {
-  return rand() % (0xff);
+    return rand() % (0xff);
 }
 
 uint8_t get8(const uv_buf_t *buf, int shift) {
-  return (uint8_t)buf->base[shift];
+    return (uint8_t)buf->base[shift];
 }
 
 int16_t get16BE(const uv_buf_t *buf, int shift) {
-  return (uint8_t) buf->base[shift+1] | (uint8_t)buf->base[shift] << 8;
+    return (uint8_t) buf->base[shift+1] | (uint8_t)buf->base[shift] << 8;
 }
 
 int32_t get32BE(const uv_buf_t *buf, int shift) {
-  return (uint8_t) buf->base[shift+3] | (uint8_t) buf->base[shift+2] << 8 |(uint8_t) buf->base[shift+1] << 16 | (uint8_t)buf->base[shift] << 24;
+    return (uint8_t) buf->base[shift+3] | (uint8_t) buf->base[shift+2] << 8 |(uint8_t) buf->base[shift+1] << 16 | (uint8_t)buf->base[shift] << 24;
 }
 
 void set8(const uv_buf_t *buf, uint8_t data, int shift) {
-  buf->base[shift] = data;
+    buf->base[shift] = data;
 }
 
 void set16BE(const uv_buf_t *buf, uint16_t data, int shift) {
-  buf->base[shift] = (0xFF00 & data) >> 8;
-  buf->base[shift+1] = (0xFF & data);
-  //printf("%x %x %x\n", (uint16_t)data,  (0xFF00 & data) >> 8, (uint8_t) (0xFF & data));
+    buf->base[shift] = (0xFF00 & data) >> 8;
+    buf->base[shift+1] = (0xFF & data);
+    //printf("%x %x %x\n", (uint16_t)data,  (0xFF00 & data) >> 8, (uint8_t) (0xFF & data));
 }
 
 void printBuff(const char *data, uint16_t size){
-  printf("Buffer: ");
-  for (size_t i = 0; i < size; i++) {
-    printf("%x ", (uint8_t)data[i]);
-  }
-  printf("\n");
+    printf("Buffer: ");
+    for (size_t i = 0; i < size; i++) {
+        printf("%x ", (uint8_t)data[i]);
+    }
+    printf("\n");
 }
 
 void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct sockaddr *addr, unsigned flags) {
     //printf("%s data size %lu\n", __FUNCTION__, nread);
     if (nread == 0) {
-      return;
+        return;
     }
     if (nread < 0) {
         fprintf(stderr, "Read udp error %s\n", uv_err_name(nread));
@@ -96,18 +96,18 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
         return;
     }
     if (state != 0){
-      printf("Data! ");
-      for (size_t i = 0; i < nread; i++) {
-        printf("%x ", buf->base[i]);
-      }
-      printf("\n");
-      return;
+        printf("Data! ");
+        for (size_t i = 0; i < nread; i++) {
+            printf("%x ", buf->base[i]);
+        }
+        printf("\n");
+        return;
     }
 
     int16_t answer = get16BE(buf, 0);
     if (answer != SUCCESS_RESPONSE){
-      printf("Error response\n");
-      exit(1);
+        printf("Error response\n");
+        exit(1);
     }
     int16_t length = get16BE(buf, 2);
     int32_t cookie = get32BE(buf, 4);
@@ -124,28 +124,28 @@ void on_read(uv_udp_t *req, ssize_t nread, const uv_buf_t *buf, const struct soc
     printf("Get data %x Id = %x%x%x\n", cookie, id1, id2, id3);
 
     while (attrLen - pos > 0) {
-      int16_t type1 = get16BE(buf, 20 + pos);
-      int16_t length1 = get16BE(buf, 22 + pos);
-      if (type1 == MAPPED_ADDRESS){
-        protocol = get8(buf, 25 + pos);
-        port = get16BE(buf, 26 + pos);
-        ip1 = get8(buf, 28 + pos);
-        ip2 = get8(buf, 29 + pos);
-        ip3 = get8(buf, 30 + pos);
-        ip4 = get8(buf, 31 + pos);
-      }
-      if (type1 == XOR_MAPPED_ADDRESS){
-        //Xor with magic cookie
-        protocol = get8(buf, 25 + pos);
-        port = get16BE(buf, 26 + pos) ^ 0x2112;
-        ip1 = get8(buf, 28 + pos) ^ 0x21;
-        ip2 = get8(buf, 29 + pos) ^ 0x12;
-        ip3 = get8(buf, 30 + pos) ^ 0xa4;
-        ip4 = get8(buf, 31 + pos) ^ 0x42;
-      }
-      printf("protocol type %d %d ip %d.%d.%d.%d %d\n", type1 ,protocol, ip1, ip2, ip3, ip4, port);
-      pos+=length1 + 4;
-      printf("Attr length %d first type %d first length %d\n", attrLen, type1, length1);
+        int16_t type1 = get16BE(buf, 20 + pos);
+        int16_t length1 = get16BE(buf, 22 + pos);
+        if (type1 == MAPPED_ADDRESS){
+            protocol = get8(buf, 25 + pos);
+            port = get16BE(buf, 26 + pos);
+            ip1 = get8(buf, 28 + pos);
+            ip2 = get8(buf, 29 + pos);
+            ip3 = get8(buf, 30 + pos);
+            ip4 = get8(buf, 31 + pos);
+        }
+        if (type1 == XOR_MAPPED_ADDRESS){
+            //Xor with magic cookie
+            protocol = get8(buf, 25 + pos);
+            port = get16BE(buf, 26 + pos) ^ 0x2112;
+            ip1 = get8(buf, 28 + pos) ^ 0x21;
+            ip2 = get8(buf, 29 + pos) ^ 0x12;
+            ip3 = get8(buf, 30 + pos) ^ 0xa4;
+            ip4 = get8(buf, 31 + pos) ^ 0x42;
+        }
+        printf("protocol type %d %d ip %d.%d.%d.%d %d\n", type1 ,protocol, ip1, ip2, ip3, ip4, port);
+        pos+=length1 + 4;
+        printf("Attr length %d first type %d first length %d\n", attrLen, type1, length1);
     }
     state = 1;
 
@@ -171,7 +171,7 @@ uv_buf_t make_discover_msg() {
     buffer.base[7] = 0x42;
     //id random
     for (int i=0; i<12; i++){
-      buffer.base[8 + i] = getRand();
+        buffer.base[8 + i] = getRand();
     }
 
     return buffer;
@@ -186,143 +186,143 @@ void on_send(uv_udp_send_t *req, int status) {
 }
 
 void stun_request() {
-  uv_buf_t discover_msg = make_discover_msg();
-  struct sockaddr_in send_addr;
-  uv_ip4_addr("216.93.246.18", 3478, &send_addr);
-  //uv_ip4_addr("173.194.72.127", 19302, &send_addr);
-  //uv_ip4_addr("91.213.144.172", 19302, &send_addr); //turn.sbis.ru
-  uv_udp_send(&send_req, &send_socket, &discover_msg, 1, (const struct sockaddr *)&send_addr, on_send);
+    uv_buf_t discover_msg = make_discover_msg();
+    struct sockaddr_in send_addr;
+    uv_ip4_addr("216.93.246.18", 3478, &send_addr);
+    //uv_ip4_addr("173.194.72.127", 19302, &send_addr);
+    //uv_ip4_addr("91.213.144.172", 19302, &send_addr); //turn.sbis.ru
+    uv_udp_send(&send_req, &send_socket, &discover_msg, 1, (const struct sockaddr *)&send_addr, on_send);
 }
 
 void on_close(uv_handle_t* handle)
 {
-  printf("closed\n");
+    printf("closed\n");
 }
 
 void on_write(uv_write_t* req, int status)
 {
-  //printf("Send done status %d\n", status );
-  if (status) {
-    fprintf(stderr, "On write error %d %s\n", status, uv_err_name(status));
-		return;
-  }
+    //printf("Send done status %d\n", status );
+    if (status) {
+        fprintf(stderr, "On write error %d %s\n", status, uv_err_name(status));
+        return;
+    }
 }
 
 void on_heartbeat() {
-  uv_buf_t buffer;
+    uv_buf_t buffer;
 
-  alloc_buffer(NULL, 5, &buffer);
-  buffer.base[0] = 'p';
-  buffer.base[1] = 'i';
-  buffer.base[2] = 'n';
-  buffer.base[3] = 'g';
-  buffer.base[4] = '\0';
-  struct sockaddr_in send_addr;
-  char tmp[15];
-  sprintf(tmp, "%d.%d.%d.%d", sip1, sip2, sip3, sip4);
+    alloc_buffer(NULL, 5, &buffer);
+    buffer.base[0] = 'p';
+    buffer.base[1] = 'i';
+    buffer.base[2] = 'n';
+    buffer.base[3] = 'g';
+    buffer.base[4] = '\0';
+    struct sockaddr_in send_addr;
+    char tmp[15];
+    sprintf(tmp, "%d.%d.%d.%d", sip1, sip2, sip3, sip4);
 
-  uv_ip4_addr(tmp, sport, &send_addr);
+    uv_ip4_addr(tmp, sport, &send_addr);
 
-  uv_udp_send(&send_req, &send_socket, &buffer, 1, (const struct sockaddr *)&send_addr, on_send);
+    uv_udp_send(&send_req, &send_socket, &buffer, 1, (const struct sockaddr *)&send_addr, on_send);
 }
 
 void on_read_tcp(uv_stream_t* tcp, ssize_t nread, const uv_buf_t *buf)
 {
-	if(nread < 0) {
-    uv_close((uv_handle_t*)tcp, on_close);
-    free(buf->base);
-	}
-  printf("%s read data %lu\n", __FUNCTION__, nread);
+    if(nread < 0) {
+        uv_close((uv_handle_t*)tcp, on_close);
+        free(buf->base);
+    }
+    printf("%s read data %lu\n", __FUNCTION__, nread);
 
-  uint8_t message = get8(buf, 0);
+    uint8_t message = get8(buf, 0);
 
-  switch (message) {
+    switch (message) {
     case 2:{
-      printf("2");
-      printBuff(buf->base, nread);
-      sip1 = get8(buf, 1);
-      sip2 = get8(buf, 2);
-      sip3 = get8(buf, 3);
-      sip4 = get8(buf, 4);
-      sport = get16BE(buf, 5);
-      printf("Get ip addr %d.%d.%d.%d:%d\n", sip1, sip2, sip3, sip4, sport);
-      uv_timer_init(loop, &heartbeat_timer);
-      uv_timer_start(&heartbeat_timer, on_heartbeat, 1000, 1000); //через 0 секунд каждые 2 секунды
+        printf("2\n");
+        printBuff(buf->base, nread);
+        sip1 = get8(buf, 1);
+        sip2 = get8(buf, 2);
+        sip3 = get8(buf, 3);
+        sip4 = get8(buf, 4);
+        sport = get16BE(buf, 5);
+        printf("Get ip addr %d.%d.%d.%d:%d\n", sip1, sip2, sip3, sip4, sport);
+        uv_timer_init(loop, &heartbeat_timer);
+        uv_timer_start(&heartbeat_timer, on_heartbeat, 1000, 1000); //через 0 секунд каждые 2 секунды
     }
-    break;
+        break;
     case 3:{
-      id_count = (nread-1) / 3;
-      printf("List of users, count %d\n",  id_count);
-      for (int i = 0; i < id_count; i++){
-        uint16_t id = get16BE(buf, 2 + (i*3));
-        printf("Ids %x\n", id);
-        ids[i] = id;
-      }
+        id_count = (nread-1) / 3;
+        printf("List of users, count %d\n",  id_count);
+        for (int i = 0; i < id_count; i++){
+            uint16_t id = get16BE(buf, 2 + (i*3));
+            printf("Ids %x\n", id);
+            ids[i] = id;
+        }
     }
-    break;
+        break;
     default:
-    break;
-  }
+        break;
+    }
 
-	free(buf->base);
+    free(buf->base);
 }
 
 void on_connect(uv_connect_t* connection, int status) {
-  if (status) {
-    fprintf(stderr, "Read error %s\n", uv_err_name(status));
-    exit(1);
-  }
-  uv_stream_t* stream = connection->handle;
+    if (status) {
+        fprintf(stderr, "Read error %s\n", uv_err_name(status));
+        exit(1);
+    }
+    uv_stream_t* stream = connection->handle;
 
-  uv_buf_t buffer;
-  uv_write_t request;
-  alloc_buffer(NULL, 3, &buffer);
-  //command
-  buffer.base[0] = 0x00;
-  //name
-  buffer.base[1] = getRand();
-  buffer.base[2] = getRand();
-  our_id = get16BE(&buffer, 1);
-	uv_write(&request, stream, &buffer, 1, on_write);
-	uv_read_start(stream, alloc_buffer, on_read_tcp);
+    uv_buf_t buffer;
+    uv_write_t request;
+    alloc_buffer(NULL, 3, &buffer);
+    //command
+    buffer.base[0] = 0x00;
+    //name
+    buffer.base[1] = getRand();
+    buffer.base[2] = getRand();
+    our_id = get16BE(&buffer, 1);
+    uv_write(&request, stream, &buffer, 1, on_write);
+    uv_read_start(stream, alloc_buffer, on_read_tcp);
 
 }
 
 void wait_two_id(uv_idle_t* handle) {
     if (id_count > 1 && state == 1){
-      printf("Yay! Our is 2\n");
-      for (int i = 0; i<id_count; i++){
-        if (ids[i] != our_id){
-          uv_buf_t buffer;
+        printf("Yay! Our is 2\n");
+        for (int i = 0; i<id_count; i++){
+            if (ids[i] != our_id){
+                uv_buf_t buffer;
 
-          alloc_buffer(NULL, 10, &buffer);
-          set8(&buffer, 0x02, 0);
-          set16BE(&buffer, ids[i], 1);
-          set8(&buffer, 0x02, 3);
-          //ip
-          set8(&buffer, ip1, 4);
-          set8(&buffer, ip2, 5);
-          set8(&buffer, ip3, 6);
-          set8(&buffer, ip4, 7);
-          //port
-          set16BE(&buffer, port, 8);
-          //char tmp[] = "test";
-          //memcpy(buffer.base + 3, tmp , sizeof(tmp));
-          //printf("Ids i = %x\n", ids[i]);
-          printBuff(buffer.base, 11);
+                alloc_buffer(NULL, 10, &buffer);
+                set8(&buffer, 0x02, 0);
+                set16BE(&buffer, ids[i], 1);
+                set8(&buffer, 0x02, 3);
+                //ip
+                set8(&buffer, ip1, 4);
+                set8(&buffer, ip2, 5);
+                set8(&buffer, ip3, 6);
+                set8(&buffer, ip4, 7);
+                //port
+                set16BE(&buffer, port, 8);
+                //char tmp[] = "test";
+                //memcpy(buffer.base + 3, tmp , sizeof(tmp));
+                printf("Ids i = %x\n", ids[i]);
+                printBuff(buffer.base, 11);
 
-          uv_write(&request, command_connect.handle, &buffer, 1, on_write);
+                uv_write(&request, command_connect.handle, &buffer, 1, on_write);
+            }
         }
-      }
-      uv_idle_stop(handle);
+        uv_idle_stop(handle);
     }
 
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 2 ){
-      printf("Use ./hello 5.189.11.250\n");
-      //return(-1);
+        printf("Use ./hello 5.189.11.250\n");
+        //return(-1);
 
     }
     srand(time(NULL));
