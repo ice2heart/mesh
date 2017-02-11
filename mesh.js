@@ -3,15 +3,23 @@ var HOST = '216.93.246.18';
 
 var ourId;
 var ids = [];
+var ip = [];
 
 
 const net = require('net');
 const Stun = require('./stunclient');
 const stun = new Stun(PORT, HOST);
+stun.on('ip', function(ourip){
+  ip = ourip;
+});
 
+var getRand = function () {
+  return Math.random() * (0xff);
+};
 
 var commandClient = new net.Socket();
-commandClient.connect(7007, 'home.ice2heart.com', function () {
+//commandClient.connect(7007, 'home.ice2heart.com', function () {
+commandClient.connect(7007, '192.168.88.102', function () {
    console.log('Connected');
    var buff = new Buffer(3);
    buff[0] = 0; //comand register
