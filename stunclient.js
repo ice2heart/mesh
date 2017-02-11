@@ -100,7 +100,7 @@ var Stun = function (ip, port) {
     self.ip[4] = port;
     self.status = 1;
     //self.emit('ip', `${ip1}.${ip2}.${ip3}.${ip4}`, port);
-    self.emit('ip', ip, port);
+    self.emit('ip', self.ip, port);
   });
 };
 
