@@ -43,11 +43,7 @@ commandClient.on('data', function (data) {
          message[2] = 'l';
          message[3] = 'l';
          message[4] = 'o';
-         client.send(message, 0, message.length, sport, newip, function (err, bytes) {
-            if (err) console.log(err);
-            console.log('UDP message sent to ' + newip + ':' + sport);
-            //client.close();
-         });
+         stun.send(message, newip, port);
       }, 10000);
       break;
    case 3:
@@ -83,7 +79,6 @@ var sendIp = function() {
       buff.writeUInt16BE(ip[4], 8);
       commandClient.write(buff);
    });
-
 };
 
 stun.getIp();

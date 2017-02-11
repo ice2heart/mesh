@@ -45,6 +45,7 @@ var Stun = function (ip, port) {
   this.client.on('message', function (msg, rinfo) {
     if (self.status) {
       console.log(msg, rinfo);
+      self.emit('data', msg);
       return;
     }
 
@@ -106,16 +107,22 @@ util.inherits(Stun, EventEmitter);
 
 Stun.prototype.getIp = function () {
   var message = makeDiscoverMsg();
-
   this.client.send(message, 0, message.length, this._serverIp, this._serverPort, function (err, bytes) {
     if (err) {
       throw err;
     }
     //client.close();
   });
-
 };
 
+Stun.prototype.send = function (message, ip, port) {
+  this.client.send(message, 0, message.length, ip, port, function (err, bytes) {
+    if (err) {
+      throw err;
+    }
+    //client.close();
+  });
+};
 
 
 
