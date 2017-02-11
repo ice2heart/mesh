@@ -108,7 +108,7 @@ util.inherits(Stun, EventEmitter);
 
 Stun.prototype.getIp = function () {
   var message = makeDiscoverMsg();
-  this.client.send(message, 0, message.length, this._serverIp, this._serverPort, function (err, bytes) {
+  this.client.send(message, 0, message.length, this._serverPort, this._serverIp, function (err, bytes) {
     if (err) {
       throw err;
     }
@@ -117,7 +117,7 @@ Stun.prototype.getIp = function () {
 };
 
 Stun.prototype.send = function (message, ip, port) {
-  this.client.send(message, 0, message.length, ip, port, function (err, bytes) {
+  this.client.send(message, 0, message.length, port, ip, function (err, bytes) {
     if (err) {
       throw err;
     }

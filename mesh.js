@@ -43,7 +43,7 @@ commandClient.on('data', function (data) {
       sip4 = data[4];
       sport = data.readUInt16BE(5);
       var newip = `${sip1}.${sip2}.${sip3}.${sip4}`;
-      console.log(`${sip1}.${sip2}.${sip3}${sip4}:${sport}`);
+      console.log(`${sip1}.${sip2}.${sip3}.${sip4}:${sport}`);
       sendIp();
       setInterval(function(){
          var message = new Buffer(5);
