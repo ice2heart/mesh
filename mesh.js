@@ -10,6 +10,7 @@ const net = require('net');
 const Stun = require('./stunclient');
 const stun = new Stun(PORT, HOST);
 stun.on('ip', function(ourip){
+  console.log(ourip);
   ip = ourip;
 });
 
@@ -51,7 +52,7 @@ commandClient.on('data', function (data) {
          message[2] = 'l';
          message[3] = 'l';
          message[4] = 'o';
-         stun.send(message, newip, port);
+         stun.send(message, newip, sport);
       }, 10000);
       break;
    case 3:
