@@ -117,6 +117,7 @@ Stun.prototype.getIp = function () {
 };
 
 Stun.prototype.send = function (message, ip, port) {
+  console.log('Stun','Send message ', message.length);
   this.client.send(message, 0, message.length, port, ip, function (err, bytes) {
     if (err) {
       throw err;
