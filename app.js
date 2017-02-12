@@ -25,10 +25,14 @@ const sendUsers = () => {
 
 var server = net.createServer(function(sock) {
   console.log('CONNECTED: ' + sock.remoteAddress + ':' + sock.remotePort);
-
+  sock.on('error', function(err) {
+	      //Prevent possible ECONNRESET errors from popping up
+	      if (err.code !== 'ECONNRESET')
+	throw err;
+  });
   sock.on('data', function(data) {
     var command = data.readInt8();
-    //console.log('data coomand = ' + command + ' ' + data);
+    console.log('data coomand = ' + command + ' ' + data);
     switch (command) {
       case 0:
         var name = data.readInt16BE(1);
@@ -54,10 +58,10 @@ var server = net.createServer(function(sock) {
   });
 
   sock.on('close', function(data) {
-    console.log('CLOSED: ' + sock.remoteAddress + ' ' + sock.remotePort);
+    console.log('CLOSED: ' + sock.remoteAddress + ' ' + sock.remotePort + sock.iid);
     delete users[sock.iid];
+    console.log(users);
   });
-  //socket.pipe(socket);
 });
 
 server.listen(7007);
