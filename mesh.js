@@ -36,10 +36,8 @@ var App = function () {
       var count = (data.length - 1) / 3;
       for (var i = 0; i < count; ++i) {
         var id = data.readUInt16BE(2 + (i * 3));
-        console.log(id);
         if (id !== ourId)
           self.ids.push(id);
-
       }
       if (self.ids.length) {
         self.getIp().then(() => {
@@ -74,7 +72,7 @@ App.prototype.getIp = function () {
   var self = this;
   return new Promise(function (resolve, reject) {
     self.stun.once('ip', function (ourip) {
-      console.log(ourip);
+      console.log('Our ip:', ourip);
       self.ip = ourip;
       resolve(ourip);
     });
