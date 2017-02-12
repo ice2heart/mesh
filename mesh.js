@@ -1,11 +1,8 @@
 var PORT = 3478;
 var HOST = '216.93.246.18';
 
-
-
 const net = require('net');
 const Stun = require('./stunclient');
-
 
 var getRand = function () {
   return Math.random() * (0xff);
@@ -32,19 +29,8 @@ var App = function () {
       sip4 = data[4];
       sport = data.readUInt16BE(5);
       var newip = `${sip1}.${sip2}.${sip3}.${sip4}`;
-      console.log(`${sip1}.${sip2}.${sip3}.${sip4}:${sport}`);
-      self.getIp().then(() => {
-        self.sendIp();
-      })
-      setInterval(function () {
-        var message = new Buffer(5);
-        message[0] = 'H';
-        message[1] = 'e';
-        message[2] = 'l';
-        message[3] = 'l';
-        message[4] = 'o';
-        self.stun.send(message, newip, sport);
-      }, 1000);
+      console.log(`${newip}:${sport}`);
+      self.stun.setClient(newip, sport);
       break;
     case 3:
       var count = (data.length - 1) / 3;
@@ -53,7 +39,11 @@ var App = function () {
         console.log(id);
         if (id !== ourId)
           self.ids.push(id);
+
       }
+      self.getIp().then(() => {
+        self.sendIp();
+      });
       break;
     default:
 
@@ -107,4 +97,4 @@ App.prototype.sendIp = function () {
   });
 };
 
-var app =  new App();
+var app = new App();

@@ -44,6 +44,19 @@ var Stun = function (ip, port) {
 
   this.client.on('message', function (msg, rinfo) {
     if (self.status) {
+      if (self.status === 1) {
+        self.emit('connected');
+        self.status = 2;
+      }
+      if (msg[0] == 0x10) {
+        clearTimeout(self.timeout);
+        self.timeout = setTimeout(() => {
+          console.log('disconnect');
+          self.emit('disconnect');
+          self.close();
+        }, 3000);
+        return;
+      }
       console.log(msg, rinfo);
       self.emit('data', msg);
       return;
@@ -116,16 +129,35 @@ Stun.prototype.getIp = function () {
   });
 };
 
-Stun.prototype.send = function (message, ip, port) {
-  console.log('Stun','Send message ', message.length);
+Stun.prototype.send = function (message, possibleip, possibleport) {
+  console.log('Stun', 'Send message ', message.length);
+  var ip = possibleip || this._serverIp;
+  var port = possibleport || this._serverPort;
+  console.log(ip, port);
   this.client.send(message, 0, message.length, port, ip, function (err, bytes) {
     if (err) {
       throw err;
     }
-    //client.close();
   });
 };
 
+Stun.prototype.setClient = function (ip, port) {
+  this._serverIp = ip;
+  this._serverPort = port;
+  this.ping = setInterval(() => {
+    var message = new Buffer(5);
+    message[0] = 0x10;
+    message.write('Ping',1);
+
+    console.log(message);
+    this.send(message, this._serverIp, this._serverPort);
+  }, 1000);
+};
+
+Stun.prototype.close = function () {
+  clearInterval(this.ping);
+  this.client.close();
+};
 
 
 module.exports = Stun;
