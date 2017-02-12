@@ -41,9 +41,12 @@ var App = function () {
           self.ids.push(id);
 
       }
-      self.getIp().then(() => {
-        self.sendIp();
-      });
+      if (self.ids.length) {
+        self.getIp().then(() => {
+          self.sendIp();
+        });
+      }
+
       break;
     default:
 

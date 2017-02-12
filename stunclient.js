@@ -63,6 +63,7 @@ var Stun = function (ip, port) {
     }
 
 
+    //stun things
     var answer = msg.readUInt16BE();
     if (answer !== SUCCESS_RESPONSE) {
       console.log("Error response");
@@ -147,8 +148,7 @@ Stun.prototype.setClient = function (ip, port) {
   this.ping = setInterval(() => {
     var message = new Buffer(5);
     message[0] = 0x10;
-    message.write('Ping',1);
-
+    message.write('Ping', 1);
     console.log(message);
     this.send(message, this._serverIp, this._serverPort);
   }, 1000);
