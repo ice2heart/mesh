@@ -23,7 +23,7 @@ if (argv.h || !argv._.length) {
 
 
 var getRand = function () {
-  return Math.random() * (0xff);
+  return Math.round(Math.random() * (0xff));
 };
 
 var App = function () {
@@ -38,7 +38,7 @@ var App = function () {
     console.log('Connected');
     if (argv.c) {
       self.exposeServer = net.createServer((c) => {
-        var id = getRand;
+        var id = getRand();
         var idMessage = new Buffer(2);
         idMessage[0] = 0x12; // id
         idMessage[1] = id;
@@ -54,8 +54,8 @@ var App = function () {
           self.stun.send(message);
         });
         c.on('end', () => {
-          if (self.id[id]) {
-            delete self.id[id];
+          if (self.clients[id]) {
+            delete self.clients[id];
           }
           console.log('client disconnected');
         });
@@ -77,6 +77,7 @@ var App = function () {
     } //end of c
     if (argv.e) {
       self.exposeSockets = {};
+      self.buff = {};
       self.stun.on('data', (data) => {
         if (data[0] == 0x12) {
           socket = new net.Socket();
@@ -96,14 +97,24 @@ var App = function () {
           });
           socket.connect(argv.e, 'localhost', () => {
             console.log('up connect id' + id);
+            if (self.buff[data[1]]){
+              self.buff[data[1]].forEach((out) =>{
+                socket.write(out);
+              });
+            }
           });
         }
         if (data[0] == 0x11) {
-          if (typeof (self.exposeSockets[data[1]]) === 'undefined') {
-            return;
-          }
           var out = new Buffer(data.length - 2);
           out.copy(data, 0, data.length - 2);
+          if (typeof (self.exposeSockets[data[1]]) === 'undefined') {
+            console.error('no socket');
+            if (self.buff[data[1]])
+              self.buff[data[1]] = [];
+            self.buff[data[1]].append(out);
+            return;
+          }
+
           self.exposeSockets[data[1]].write(out);
         }
       });
