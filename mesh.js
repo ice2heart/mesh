@@ -54,7 +54,7 @@ var App = function () {
           self.stun.send(message);
         });
         c.on('end', () => {
-          if (self.id[id]){
+          if (self.id[id]) {
             delete self.id[id];
           }
           console.log('client disconnected');
@@ -94,7 +94,7 @@ var App = function () {
             console.log('end');
             delete self.exposeSockets[id];
           });
-          socket.connect('localhost', argv.e, () => {
+          socket.connect(argv.e, 'localhost', () => {
             console.log('up connect id' + id);
           });
         }
