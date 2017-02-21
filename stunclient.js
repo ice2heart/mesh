@@ -57,7 +57,7 @@ var Stun = function (ip, port) {
         }, 3000);
         return;
       }
-      console.log(msg, rinfo);
+      //console.log(msg, rinfo);
       self.emit('data', msg);
       return;
     }
@@ -131,10 +131,10 @@ Stun.prototype.getIp = function () {
 };
 
 Stun.prototype.send = function (message, possibleip, possibleport) {
-  console.log('Stun', 'Send message ', message.length);
+  //console.log('Stun', 'Send message ', message.length);
   var ip = possibleip || this._serverIp;
   var port = possibleport || this._serverPort;
-  console.log(ip, port);
+  //console.log(ip, port);
   this.client.send(message, 0, message.length, port, ip, function (err, bytes) {
     if (err) {
       throw err;

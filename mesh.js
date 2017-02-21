@@ -61,12 +61,12 @@ var App = function () {
         });
       });
       self.stun.on('data', (data) => {
-        if (data.length > 2 || data[0] !== 0x11 || typeof (self.id[data[1]]) === 'undefined') {
+        if (data.length > 2 || data[0] !== 0x11 || typeof (self.clients[data[1]]) === 'undefined') {
           return;
         }
         var out = new Buffer(data.length - 2);
         out.copy(data, 0, data.length - 2);
-        self.id[data[1]].write(out);
+        self.clients[data[1]].write(out);
       });
       self.exposeServer.on('error', (err) => {
         throw err;
@@ -99,6 +99,7 @@ var App = function () {
             console.log('up connect id' + id);
             if (self.buff[data[1]]){
               self.buff[data[1]].forEach((out) =>{
+                console.log('send data' + out);
                 socket.write(out);
               });
             }
@@ -107,11 +108,11 @@ var App = function () {
         if (data[0] == 0x11) {
           var out = new Buffer(data.length - 2);
           out.copy(data, 0, data.length - 2);
-          if (typeof (self.exposeSockets[data[1]]) === 'undefined') {
+          if (self.exposeSockets[data[1]]) {
             console.error('no socket');
-            if (self.buff[data[1]])
+            if (!self.buff[data[1]])
               self.buff[data[1]] = [];
-            self.buff[data[1]].append(out);
+            self.buff[data[1]].push(out);
             return;
           }
 
