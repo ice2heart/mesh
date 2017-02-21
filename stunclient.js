@@ -57,7 +57,7 @@ var Stun = function (ip, port) {
         }, 3000);
         return;
       }
-      //console.log(msg, rinfo);
+      console.log(msg, rinfo);
       self.emit('data', msg);
       return;
     }
@@ -149,7 +149,7 @@ Stun.prototype.setClient = function (ip, port) {
     var message = new Buffer(5);
     message[0] = 0x10;
     message.write('Ping', 1);
-    console.log(message);
+    //console.log(message);
     this.send(message, this._serverIp, this._serverPort);
   }, 1000);
 };

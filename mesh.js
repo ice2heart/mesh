@@ -84,6 +84,7 @@ var App = function () {
           var id = data[1];
           self.exposeSockets[id] = socket;
           socket.on('data', (data) => {
+            console.log('onData ' + data);
             var size = data.length + 2; // 1 byte type + 1 byte client id
             var message = new Buffer(size);
             message.copy(data, 0, 2);
