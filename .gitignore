@@ -1,2 +1,4 @@
 *.pro.user
 build-*
+node_modules
+yarn.lock
