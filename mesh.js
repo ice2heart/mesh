@@ -54,7 +54,9 @@ var App = function () {
           self.stun.send(message);
         });
         c.on('end', () => {
-          delete self.id[id];
+          if (self.id[id]){
+            delete self.id[id];
+          }
           console.log('client disconnected');
         });
       });
@@ -80,7 +82,7 @@ var App = function () {
           socket = new net.Socket();
           var id = data[1];
           self.exposeSockets[id] = socket;
-          self.exposeSockets.on('data', (data) => {
+          socket.on('data', (data) => {
             var size = data.length + 2; // 1 byte type + 1 byte client id
             var message = new Buffer(size);
             message.copy(data, 0, 2);
@@ -88,7 +90,7 @@ var App = function () {
             message[1] = id;
             self.stun.send(message);
           });
-          self.exposeSockets.on('end', function () {
+          socket.on('end', function () {
             console.log('end');
             delete self.exposeSockets[id];
           });
