@@ -89,7 +89,7 @@ var App = function () {
             console.log('onData ' + data);
             var size = data.length + 2; // 1 byte type + 1 byte client id
             var message = new Buffer(size);
-            data.copy(message, 0, 2);
+            data.copy(message, 2, 0);
             message[0] = 0x11; //data transfer
             message[1] = id;
             self.stun.send(message);
@@ -110,7 +110,7 @@ var App = function () {
         }
         if (data[0] == 0x11) {
           var out = new Buffer(data.length - 2);
-          data.copy(out, 0, data.length - 2);
+          data.copy(out, 2, 0);
           if (self.exposeSockets[data[1]]) {
             console.error('no socket');
             if (!self.buff[data[1]])
