@@ -48,11 +48,13 @@ var App = function () {
         c.on('data', (data) => {
           var size = data.length + 2; // 1 byte type + 1 byte client id
           var message = new Buffer(size);
-          data.copy(message, 0, 2);
+          data.copy(message, 2, 0);
           message[0] = 0x11; //data transfer
           message[1] = id;
-          console.log(data);
+          console.log(data.toString(), data.length);
+          console.log(data, data.length);
           console.log(message);
+          console.log(message.toString(), message.length);
           self.stun.send(message);
         });
         c.on('end', () => {
@@ -67,7 +69,7 @@ var App = function () {
           return;
         }*/
         var out = new Buffer(data.length - 2);
-        data.copy(out, 0, data.length - 2);
+        data.copy(out, 0, 2);
         self.clients[data[1]].write(out);
       });
       self.exposeServer.on('error', (err) => {
@@ -110,7 +112,7 @@ var App = function () {
         }
         if (data[0] == 0x11) {
           var out = new Buffer(data.length - 2);
-          data.copy(out, 2, 0);
+          data.copy(out, 0, 2);
           if (self.exposeSockets[data[1]]) {
             console.error('no socket');
             if (!self.buff[data[1]])
