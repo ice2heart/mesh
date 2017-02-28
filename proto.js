@@ -11,7 +11,7 @@ var Packet = function(data, num) {
   this.buff[0] = MAGICA;
   this.buff[1] = MAGICB;
   this.buff.writeInt16BE(this.size, 2);
-  this.buff[3] = num;
+  this.buff[4] = num;
 };
 
 var Protocol = function() {
