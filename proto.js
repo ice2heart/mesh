@@ -109,10 +109,10 @@ Protocol.prototype.packet = function (data) {
 };
 
 Protocol.prototype.checkPacket = function (data) {
-  if (data[0] != MAGICA || data[1] != MAGICB) {
+  /*if (data[0] != MAGICA || data[1] != MAGICB) {
     console.error('Bad packet');
     return false;
-  }
+  }*/
   this.counters[RXT] = this.counters[RX] + 1;
 
 
