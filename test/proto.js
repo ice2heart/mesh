@@ -32,6 +32,7 @@ describe('Protocol', function () {
     });
     p2.on('data', (data) => {
       outFile.push(data);
+      console.log(data.length);
       var totalLength = outFile.reduce((val, item) => {
         return val + item.length;
       }, 0);

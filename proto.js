@@ -2,8 +2,9 @@
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 
-const MAXSIZE = 502;
+const MAXUDPSIZE = 509;
 const HEADERSIZE = 2 + 2 + 1 + 1; //magic + length + number + type;
+const MAXSIZE = MAXUDPSIZE - HEADERSIZE;
 const MAGICA = 0xf1;
 const MAGICB = 0x1f;
 
@@ -21,14 +22,14 @@ const TX = 1;
 const RXT = 2;
 
 
-var Packet = function (data, num, type) {
+var Packet = function (data, num, type, size) {
   this.size = data.length + HEADERSIZE;
   this.num = num;
   this.buff = new Buffer(this.size + 1);
   data.copy(this.buff, HEADERSIZE, 0); //target, targetStart, sourceStart
   this.buff[0] = MAGICA;
   this.buff[1] = MAGICB;
-  this.buff.writeInt16BE(this.size, 2); // we need or not?
+  this.buff.writeInt16BE(size, 2); // we need or not?
   this.buff[4] = num;
   this.buff[5] = type;
 };
@@ -42,6 +43,8 @@ var Protocol = function () {
   this.counters[RX] = 0;
   this.firstRX = true;
   this.unorderedPackets = [];
+  this.storageBuffer = null;
+  this.storageSize = 0;
 };
 util.inherits(Protocol, EventEmitter);
 
@@ -50,20 +53,22 @@ Protocol.prototype.rawData = function (data) {
   var startPos = 0;
   if (!data.length)
     return;
+  var first = true;
   while (startPos != data.length) {
     var packet;
     if (data.length - startPos > MAXSIZE) {
-      packet = new Packet(data.slice(startPos, startPos + MAXSIZE), this.counters[TX]++, DataTypes.DATA);
+      packet = new Packet(data.slice(startPos, startPos + MAXSIZE), this.counters[TX]++, DataTypes.DATA, first? data.length : 0);
       this.packets[packet.num] = packet;
       this.emit('packet', packet.buff);
       startPos += MAXSIZE;
     } else {
       var size = data.length - startPos;
-      packet = new Packet(data.slice(startPos, startPos + size), this.counters[TX]++, DataTypes.DATA);
+      packet = new Packet(data.slice(startPos, startPos + size), this.counters[TX]++, DataTypes.DATA, first? data.length : 0);
       this.packets[packet.num] = packet;
       this.emit('packet', packet.buff);
       startPos += size;
     }
+    first = false;
   }
 };
 
@@ -83,6 +88,7 @@ Protocol.prototype.packet = function (data) {
     this.counters[RX] = data[4] - 1;
     this.firstRX = false;
   }
+  //console.log(data);
 
   if (!this.checkPacket(data)) {
     this.unorderedPackets.push(data);
@@ -113,8 +119,19 @@ Protocol.prototype.checkPacket = function (data) {
   if (data[4] === this.counters[RXT]) {
     if (data[5] === DataTypes.DATA){
       this.counters[RX]++;
-      //console.log(`push packet num ${data[4]}`);
-      this.emit('data', data.slice(HEADERSIZE, data.length - 1));
+      if (!this.storageBuffer) {
+        this.storageBuffer = [];
+        this.storageSize = data.readUInt16BE(2);
+      }
+
+      this.storageBuffer.push(data.slice(HEADERSIZE, data.length - 1));
+      let size = this.storageBuffer.reduce((val, item) => val + item.length, 0);
+      //console.log(`push packet num ${data[4]}, ${this.storageSize}, ${size}`);
+      if (size === this.storageSize){
+        this.emit('data',  Buffer.concat(this.storageBuffer));
+        this.storageSize = 0;
+        delete this.storageBuffer;
+      }
       return true;
     }
     if (data[5] === DataTypes.SYSTEM){
@@ -125,6 +142,7 @@ Protocol.prototype.checkPacket = function (data) {
       return true;
     }
     if (data[5] === DataTypes.USER) {
+
       this.counters[RX]++;
       //console.log(`push packet num ${data[4]}`);
       this.emit('systemData', data.slice(HEADERSIZE, data.length - 1));
