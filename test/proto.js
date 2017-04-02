@@ -26,20 +26,11 @@ describe('Protocol', function () {
       p2 = null;
    });
   it('Data transfer test', function () {
-    var outFile = [];
     p.on('packet', (data) => {
       p2.packet(data);
     });
     p2.on('data', (data) => {
-      outFile.push(data);
-      console.log(data.length);
-      var totalLength = outFile.reduce((val, item) => {
-        return val + item.length;
-      }, 0);
-      if (totalLength >= testData.length){
-        var result = Buffer.concat(outFile);
-        expect(Buffer.compare(testData, result)).to.equal(0 );
-      }
+      expect(Buffer.compare(testData, data)).to.equal(0);
     });
     p2.on('packet', (data) => {
       p.packet(data);
@@ -47,16 +38,8 @@ describe('Protocol', function () {
     p.rawData(testData);
   });
   it ('shuffle stream', function(){
-    let outFile = [];
     p2.on('data', (data) => {
-      outFile.push(data);
-      var totalLength = outFile.reduce((val, item) => {
-        return val + item.length;
-      }, 0);
-      if (totalLength >= testData.length){
-        var result = Buffer.concat(outFile);
-        expect(Buffer.compare(testData, result)).to.equal(0);
-      }
+      expect(Buffer.compare(testData, data)).to.equal(0);
     });
     p2.on('packet', (data) => {
       p.packet(data);

@@ -19,13 +19,12 @@ const argv = require('minimist')(process.argv.slice(2), {
 });
 
 if (argv.h || !argv._.length) {
-  console.log('-h or --help to help\n-p or --port to set up server port\n./mesh server addres');
+  console.log('-h or --help to help\n-p or --port to set up server port\n-e or --expose [portnumber]\n-c or --connect [port]');
   process.exit(1);
 }
 
-
 var getRand = function () {
-  return Math.floor(Math.round(Math.random() * (0xff)));
+  return Math.floor(Math.round(Math.random() & (0xff)));
 };
 
 var App = function () {
@@ -35,110 +34,14 @@ var App = function () {
   this.clients = {};
   this.stun = new Stun(HOST, PORT);
   this.proto = new Protocol();
-  this.proto.on('packet', (packet)=>{
+  this.proto.on('packet', (packet) => {
     this.stun.send(packet);
   });
 
-  this.stun.on('connected', () => {
-    console.log('Connected');
-    if (argv.c) {
-      self.exposeServer = net.createServer((c) => {
-        var id = getRand();
-        var idMessage = new Buffer(2);
-        idMessage[0] = 0x12; // id
-        idMessage[1] = id;
-        self.proto.rawData(idMessage);
-        self.clients[id] = c;
-        console.log('client connected');
-        c.on('data', (data) => {
-          var size = data.length + 2; // 1 byte type + 1 byte client id
-          var message = new Buffer(size);
-          data.copy(message, 2, 0);
-          message[0] = 0x11; //data transfer
-          message[1] = id;
-          console.log(data.toString(), data.length);
-          console.log(data, data.length);
-          console.log(message);
-          console.log(message.toString(), message.length);
-          self.proto.rawData(message);
-        });
-        c.on('end', () => {
-          if (self.clients[id]) {
-            delete self.clients[id];
-          }
-          console.log('client disconnected');
-        });
-      });
-      self.proto.on('data', (data)=>{
-        /*if (data.length > 2 || data[0] !== 0x11 || !self.clients[data[1]]) {
-          return;
-        }*/
-        var out = new Buffer(data.length - 2);
-        data.copy(out, 0, 2);
-        self.clients[data[1]].write(out);
-      });
-      self.stun.on('data', (data) => {
-        self.proto.packet(data);
-      });
-      self.exposeServer.on('error', (err) => {
-        throw err;
-      });
-      self.exposeServer.listen(argv.c, () => {
-        console.log('proxy server bound on port ' + argv.c);
-      });
-    } //end of c
-    if (argv.e) {
-      self.exposeSockets = {};
-      self.buff = {};
-      self.stun.on('data', (data) => {
-        self.proto.packet(data);
-      });
-      self.proto.on('data', (data) => {
-        if (data[0] == 0x12) {
-          socket = new net.Socket();
-          var id = data[1];
-          self.exposeSockets[id] = socket;
-          socket.on('data', (data) => {
-            console.log('onData ' + data);
-            var size = data.length + 2; // 1 byte type + 1 byte client id
-            var message = new Buffer(size);
-            data.copy(message, 2, 0);
-            message[0] = 0x11; //data transfer
-            message[1] = id;
-            self.proto.rawData(message);
-          });
-          socket.on('end', function () {
-            console.log('end');
-            delete self.exposeSockets[id];
-          });
-          socket.connect(argv.e, 'localhost', () => {
-            console.log('up connect id' + id);
-            if (self.buff[data[1]]){
-              self.buff[data[1]].forEach((out) =>{
-                console.log('send data' + out);
-                socket.write(out);
-              });
-            }
-          });
-        }
-        if (data[0] == 0x11) {
-          var out = new Buffer(data.length - 2);
-          data.copy(out, 0, 2);
-          if (self.exposeSockets[data[1]]) {
-            console.error('no socket');
-            if (!self.buff[data[1]])
-              self.buff[data[1]] = [];
-            self.buff[data[1]].push(out);
-            return;
-          }
+  this.stun.on('connected', this.onConnected.bind(this));
+  this.stun.on('disconnected', function () {
 
-          self.exposeSockets[data[1]].write(out);
-        }
-      });
-
-    }
   });
-
 
   this.commandSocket = new net.Socket();
   this.commandSocket.on('data', function (data) {
@@ -168,10 +71,8 @@ var App = function () {
           self.sendIp();
         });
       }
-
       break;
     default:
-
     }
   });
 
@@ -192,6 +93,114 @@ var App = function () {
 
 };
 
+App.prototype.onConnected = function () {
+  console.log('Connected');
+  if (argv.connect) {
+    this.connect();
+  } //end of c
+  if (argv.expose) {
+    this.expose();
+  }
+};
+
+App.prototype.connect = function () {
+  var self = this;
+  self.exposeServer = net.createServer((c) => {
+    var id = getRand();
+    var idMessage = new Buffer(2);
+    idMessage[0] = 0x12; // id
+    idMessage[1] = id;
+    self.proto.rawData(idMessage);
+    self.clients[id] = c;
+    console.log('client connected');
+    c.on('data', (data) => {
+      var size = data.length + 2; // 1 byte type + 1 byte client id
+      var message = new Buffer(size);
+      data.copy(message, 2, 0);
+      message[0] = 0x11; //data transfer
+      message[1] = id;
+      console.log(data.toString(), data.length);
+      console.log(data, data.length);
+      console.log(message);
+      console.log(message.toString(), message.length);
+      self.proto.rawData(message);
+    });
+    c.on('end', () => {
+      if (self.clients[id]) {
+        delete self.clients[id];
+      }
+      console.log('client disconnected');
+    });
+  });
+  self.proto.on('data', (data) => {
+    /*if (data.length > 2 || data[0] !== 0x11 || !self.clients[data[1]]) {
+      return;
+    }*/
+    var out = new Buffer(data.length - 2);
+    data.copy(out, 0, 2);
+    self.clients[data[1]].write(out);
+  });
+  self.stun.on('data', (data) => {
+    self.proto.packet(data);
+  });
+  self.exposeServer.on('error', (err) => {
+    throw err;
+  });
+  self.exposeServer.listen(argv.c, () => {
+    console.log('proxy server bound on port ' + argv.c);
+  });
+};
+
+App.prototype.expose = function () {
+  var self = this;
+  self.exposeSockets = {};
+  self.buff = {};
+  self.stun.on('data', (data) => {
+    self.proto.packet(data);
+  });
+  self.proto.on('data', (data) => {
+    if (data[0] == 0x12) {
+      socket = new net.Socket();
+      var id = data[1];
+      self.exposeSockets[id] = socket;
+      socket.on('data', (data) => {
+        console.log('onData ' + data);
+        var size = data.length + 2; // 1 byte type + 1 byte client id
+        var message = new Buffer(size);
+        data.copy(message, 2, 0);
+        message[0] = 0x11; //data transfer
+        message[1] = id;
+        self.proto.rawData(message);
+      });
+      socket.on('end', function () {
+        console.log('end');
+        delete self.exposeSockets[id];
+      });
+      socket.connect(argv.e, 'localhost', () => {
+        console.log('up connect id' + id);
+        if (self.buff[data[1]]) {
+          self.buff[data[1]].forEach((out) => {
+            console.log('send data' + out);
+            socket.write(out);
+          });
+        }
+      });
+    }
+    if (data[0] == 0x11) {
+      var out = new Buffer(data.length - 2);
+      data.copy(out, 0, 2);
+      if (self.exposeSockets[data[1]]) {
+        console.error('no socket');
+        if (!self.buff[data[1]])
+          self.buff[data[1]] = [];
+        self.buff[data[1]].push(out);
+        return;
+      }
+      self.exposeSockets[data[1]].write(out);
+    }
+  });
+};
+
 App.prototype.getIp = function () {
   var self = this;
   return new Promise(function (resolve, reject) {
@@ -203,7 +212,6 @@ App.prototype.getIp = function () {
     self.stun.getIp();
   });
 };
-
 
 App.prototype.sendIp = function () {
   this.ids.forEach((Id) => {
