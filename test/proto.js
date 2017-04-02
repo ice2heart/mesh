@@ -13,11 +13,20 @@ function shuffle(a) {
 }
 
 describe('Protocol', function () {
+  var p;
+  var p2;
+  beforeEach(function () {
+      p = new Protocol();
+      p2 = new Protocol();
+   });
+   afterEach(function () {
+      p && delete p;
+      p = null;
+      p2 && delete p2;
+      p2 = null;
+   });
   it('Data transfer test', function () {
-    var p = new Protocol();
-    var p2 = new Protocol();
     var outFile = [];
-
     p.on('packet', (data) => {
       p2.packet(data);
     });
@@ -37,8 +46,6 @@ describe('Protocol', function () {
     p.rawData(testData);
   });
   it ('shuffle stream', function(){
-    let p = new Protocol();
-    let p2 = new Protocol();
     let outFile = [];
     p2.on('data', (data) => {
       outFile.push(data);
@@ -47,7 +54,7 @@ describe('Protocol', function () {
       }, 0);
       if (totalLength >= testData.length){
         var result = Buffer.concat(outFile);
-        expect(Buffer.compare(testData, result)).to.equal(0 );
+        expect(Buffer.compare(testData, result)).to.equal(0);
       }
     });
     p2.on('packet', (data) => {

@@ -3,6 +3,8 @@ var HOST = '216.93.246.18';
 
 const net = require('net');
 const Stun = require('./stunclient');
+const Protocol = require('./proto');
+
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
     h: 'help',
@@ -23,16 +25,19 @@ if (argv.h || !argv._.length) {
 
 
 var getRand = function () {
-  return Math.round(Math.random() * (0xff));
+  return Math.floor(Math.round(Math.random() * (0xff)));
 };
 
 var App = function () {
   var self = this;
-  this.ourId;
   this.ids = [];
   this.ip = [];
-  this.clients = {}
+  this.clients = {};
   this.stun = new Stun(HOST, PORT);
+  this.proto = new Protocol();
+  this.proto.on('packet', (packet)=>{
+    this.stun.send(packet);
+  });
 
   this.stun.on('connected', () => {
     console.log('Connected');
@@ -42,7 +47,7 @@ var App = function () {
         var idMessage = new Buffer(2);
         idMessage[0] = 0x12; // id
         idMessage[1] = id;
-        self.stun.send(idMessage);
+        self.proto.rawData(idMessage);
         self.clients[id] = c;
         console.log('client connected');
         c.on('data', (data) => {
@@ -55,7 +60,7 @@ var App = function () {
           console.log(data, data.length);
           console.log(message);
           console.log(message.toString(), message.length);
-          self.stun.send(message);
+          self.proto.rawData(message);
         });
         c.on('end', () => {
           if (self.clients[id]) {
@@ -64,13 +69,16 @@ var App = function () {
           console.log('client disconnected');
         });
       });
-      self.stun.on('data', (data) => {
+      self.proto.on('data', (data)=>{
         /*if (data.length > 2 || data[0] !== 0x11 || !self.clients[data[1]]) {
           return;
         }*/
         var out = new Buffer(data.length - 2);
         data.copy(out, 0, 2);
         self.clients[data[1]].write(out);
+      });
+      self.stun.on('data', (data) => {
+        self.proto.packet(data);
       });
       self.exposeServer.on('error', (err) => {
         throw err;
@@ -83,6 +91,9 @@ var App = function () {
       self.exposeSockets = {};
       self.buff = {};
       self.stun.on('data', (data) => {
+        self.proto.packet(data);
+      });
+      self.proto.on('data', (data) => {
         if (data[0] == 0x12) {
           socket = new net.Socket();
           var id = data[1];
@@ -94,7 +105,7 @@ var App = function () {
             data.copy(message, 2, 0);
             message[0] = 0x11; //data transfer
             message[1] = id;
-            self.stun.send(message);
+            self.proto.rawData(message);
           });
           socket.on('end', function () {
             console.log('end');
