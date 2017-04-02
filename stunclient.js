@@ -9,7 +9,7 @@ var SUCCESS_RESPONSE = 0x00000101;
 
 
 var getRand = function () {
-  return Math.random() & (0xff);
+  return (Math.random() * (0xff)) & 0xff;
 };
 
 var makeDiscoverMsg = function () {

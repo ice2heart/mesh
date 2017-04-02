@@ -24,7 +24,7 @@ if (argv.h || !argv._.length) {
 }
 
 var getRand = function () {
-  return Math.floor(Math.round(Math.random() & (0xff)));
+  return (Math.random() * (0xff)) & 0xff;
 };
 
 var App = function () {
