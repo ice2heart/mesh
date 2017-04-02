@@ -1,12 +1,16 @@
 {
   "name": "controller",
   "version": "0.0.1",
-  "description": "",
-  "main": "app.js",
+  "description": "TCP over UDP peer 2 peer",
+  "main": "server.js",
   "scripts": {
     "test": "mocha"
   },
-  "author": "",
+  "author": {
+    "name": "Albert Yakupov",
+    "email": "ice2heart@gmail.com",
+    "url": "ice2heart.com"
+  },
   "license": "ISC",
   "dependencies": {
     "minimist": "^1.2.0"
@@ -14,5 +18,9 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "mocha": "^3.2.0"
+  },
+  "repository" :{
+    "type" : "git"
+  , "url" : "git@github.com:ice2heart/controller.git"
   }
 }

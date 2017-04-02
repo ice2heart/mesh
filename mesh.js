@@ -2,8 +2,8 @@ var PORT = 3478;
 var HOST = '216.93.246.18';
 
 const net = require('net');
-const Stun = require('./stunclient');
-const Protocol = require('./proto');
+const Stun = require('./lib/stunclient');
+const Protocol = require('./lib/proto');
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
@@ -40,7 +40,6 @@ var App = function () {
 
   this.stun.on('connected', this.onConnected.bind(this));
   this.stun.on('disconnected', function () {
-
   });
 
   this.commandSocket = new net.Socket();
@@ -95,10 +94,10 @@ var App = function () {
 
 App.prototype.onConnected = function () {
   console.log('Connected');
-  if (argv.connect) {
+  if (argv.c) {
     this.connect();
   } //end of c
-  if (argv.expose) {
+  if (argv.e) {
     this.expose();
   }
 };

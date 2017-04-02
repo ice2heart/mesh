@@ -1,9 +1,9 @@
-const Protocol = require('../proto');
+const Protocol = require('../lib/proto');
 const fs = require('fs');
 const chai = require('chai');
 const assert = chai.assert;
 const expect = require('chai').expect;
-const testData = fs.readFileSync('proto.js');
+const testData = fs.readFileSync('mesh.js');
 
 function shuffle(a) {
   for (let i = a.length; i; i--) {
