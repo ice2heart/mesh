@@ -1,3 +1,5 @@
+//ToDo:
+// 1. Echo type of client
 var PORT = 3478;
 var HOST = '216.93.246.18';
 
