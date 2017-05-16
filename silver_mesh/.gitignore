@@ -1,5 +1,0 @@
-.ninja*
-core
-*.o
-libuv
-hello
