@@ -190,7 +190,7 @@ App.prototype.expose = function () {
     if (data[0] == 0x11) {
       var out = new Buffer(data.length - 2);
       data.copy(out, 0, 2);
-      if (self.exposeSockets[data[1]]) {
+      if (!self.exposeSockets[data[1]]) {
         console.error('no socket');
         if (!self.buff[data[1]])
           self.buff[data[1]] = [];

@@ -35,42 +35,18 @@ var getRand = function () {
 var App = function () {
   var self = this;
   this.clients = {};
-  this.proto = new Protocol();
-
-  if (argv.c) {
-    //client
-    this.client = new net.Socket();
-    this.client.on('data', (data) => {
-      debug('data client', data.length, data);
-      self.proto.packet(data);
-    });
-    self.proto.on('packet', (packet) => {
-      debug('packet client', packet.length, packet);
-      self.client.write(packet);
-    });
-    self.client.connect(7000, 'localhost', () => {
-      this.connect();
-    });
-
-  } //end of c
-  if (argv.e) {
-    //server
-    self.server = net.createServer((c) => {
-      c.on('data', (data) => {
-        debug('data server', data.length, data);
-        self.proto.packet(data);
-      });
-      self.proto.on('packet', (packet) => {
-        debug('packet server', packet.length, packet);
-        c.write(packet);
-      });
-    });
-    self.server.listen(7000, () => {
-      debug('Data server bound on port 7000');
-      this.expose();
-    });
-
-  }
+  this.protoServer = new Protocol();
+  this.protoClient = new Protocol();
+  self.protoClient.on('packet', (packet) => {
+    //debug('packet client', packet.length, packet);
+    self.protoServer.packet(packet);
+  });
+  self.protoServer.on('packet', (packet) => {
+    //debug('packet server', packet.length, packet);
+    self.protoClient.packet(packet);
+  });
+  this.connect();
+  this.expose();
 
 };
 
@@ -82,7 +58,7 @@ App.prototype.connect = function () {
     var idMessage = new Buffer(2);
     idMessage[0] = 0x12; // id
     idMessage[1] = id;
-    self.proto.rawData(idMessage);
+    self.protoServer.rawData(idMessage);
     self.clients[id] = c;
     debugS('client connected');
     c.on('data', (data) => {
@@ -91,9 +67,9 @@ App.prototype.connect = function () {
       data.copy(message, 2, 0);
       message[0] = 0x11; //data transfer
       message[1] = id;
-      debugS('data', data.length, data);
+      debugS('Income data', data.length, data);
       debugS('rawData', message.length, message);
-      self.proto.rawData(message);
+      self.protoServer.rawData(message);
     });
     c.on('end', () => {
       if (self.clients[id]) {
@@ -102,7 +78,7 @@ App.prototype.connect = function () {
       debugS('client disconnected');
     });
   });
-  self.proto.on('data', (data) => {
+  self.protoServer.on('data', (data) => {
     /*if (data.length > 2 || data[0] !== 0x11 || !self.clients[data[1]]) {
       return;
     }*/
@@ -115,8 +91,8 @@ App.prototype.connect = function () {
   self.exposeServer.on('error', (err) => {
     throw err;
   });
-  self.exposeServer.listen(argv.c, () => {
-    debugS('proxy server bound on port ' + argv.c);
+  self.exposeServer.listen(5901, () => {
+    debugS('proxy server bound on port ' + 5901);
   });
 };
 
@@ -124,9 +100,10 @@ App.prototype.expose = function () {
   var self = this;
   self.exposeSockets = {};
   self.buff = {};
-  self.proto.on('data', (data) => {
+  self.protoClient.on('data', (data) => {
+    debugC('Proto data', data.length, data);
     if (data[0] == 0x12) {
-      debugC('Proto data', data.length, data);
+
       socket = new net.Socket();
       var id = data[1];
       self.exposeSockets[id] = socket;
@@ -138,13 +115,13 @@ App.prototype.expose = function () {
         message[1] = id;
         debugC('Income data', data.length, data);
         debugC('rawData', message.length, message);
-        self.proto.rawData(message);
+        self.protoClient.rawData(message);
       });
       socket.on('end', function () {
         debugC('end');
         delete self.exposeSockets[id];
       });
-      socket.connect(argv.e, 'localhost', () => {
+      socket.connect(22, 'localhost', () => {
         //console.log('up connect id' + id);
         if (self.buff[data[1]]) {
           self.buff[data[1]].forEach((out) => {
@@ -157,8 +134,8 @@ App.prototype.expose = function () {
     if (data[0] == 0x11) {
       var out = new Buffer(data.length - 2);
       data.copy(out, 0, 2);
-      if (self.exposeSockets[data[1]]) {
-        console.error('no socket');
+      if (!self.exposeSockets[data[1]]) {
+        debugC('no socket');
         if (!self.buff[data[1]])
           self.buff[data[1]] = [];
         self.buff[data[1]].push(out);
@@ -168,9 +145,6 @@ App.prototype.expose = function () {
       self.exposeSockets[data[1]].write(out);
     }
   });
-
-
-
 };
 
 var app = new App();
