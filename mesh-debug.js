@@ -4,11 +4,17 @@
 var PORT = 3478;
 var HOST = '216.93.246.18';
 
-const net = require('net');
-const Protocol = require('./lib/proto');
+
 const debug = require('debug')('main');
 const debugS = require('debug')('server');
 const debugC = require('debug')('client');
+
+const ExposePort = require('./lib/ExposePort');
+
+//expose
+const Protocol = require('./lib/proto');
+const net = require('net');
+
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
@@ -34,9 +40,10 @@ var getRand = function () {
 
 var App = function () {
   var self = this;
-  this.clients = {};
+
   this.protoServer = new Protocol();
-  this.protoClient = new Protocol();
+  this.expose  = new ExposePort(22);
+  this.protoClient = this.expose.getProto();
   self.protoClient.on('packet', (packet) => {
     //debug('packet client', packet.length, packet);
     self.protoServer.packet(packet);
@@ -46,13 +53,13 @@ var App = function () {
     self.protoClient.packet(packet);
   });
   this.connect();
-  this.expose();
 
 };
 
 
 App.prototype.connect = function () {
   var self = this;
+  this.clients = {};
   self.exposeServer = net.createServer((c) => {
     var id = getRand();
     var idMessage = new Buffer(2);
@@ -96,55 +103,5 @@ App.prototype.connect = function () {
   });
 };
 
-App.prototype.expose = function () {
-  var self = this;
-  self.exposeSockets = {};
-  self.buff = {};
-  self.protoClient.on('data', (data) => {
-    debugC('Proto data', data.length, data);
-    if (data[0] == 0x12) {
-
-      socket = new net.Socket();
-      var id = data[1];
-      self.exposeSockets[id] = socket;
-      socket.on('data', (data) => {
-        var size = data.length + 2; // 1 byte type + 1 byte client id
-        var message = new Buffer(size);
-        data.copy(message, 2, 0);
-        message[0] = 0x11; //data transfer
-        message[1] = id;
-        debugC('Income data', data.length, data);
-        debugC('rawData', message.length, message);
-        self.protoClient.rawData(message);
-      });
-      socket.on('end', function () {
-        debugC('end');
-        delete self.exposeSockets[id];
-      });
-      socket.connect(22, 'localhost', () => {
-        //console.log('up connect id' + id);
-        if (self.buff[data[1]]) {
-          self.buff[data[1]].forEach((out) => {
-            debugC('buffData', out.length, out);
-            socket.write(out);
-          });
-        }
-      });
-    }
-    if (data[0] == 0x11) {
-      var out = new Buffer(data.length - 2);
-      data.copy(out, 0, 2);
-      if (!self.exposeSockets[data[1]]) {
-        debugC('no socket');
-        if (!self.buff[data[1]])
-          self.buff[data[1]] = [];
-        self.buff[data[1]].push(out);
-        return;
-      }
-      debugC('Outcome Data', out.length, out);
-      self.exposeSockets[data[1]].write(out);
-    }
-  });
-};
 
 var app = new App();
