@@ -1,9 +1,8 @@
 const debug = require('debug')('main');
-const debugS = require('debug')('server');
-const debugC = require('debug')('client');
 
 const ExposePort = require('./lib/ExposePort');
 const ProxyServer = require('./lib/ProxyPortServer');
+const Protocol = require('./lib/proto');
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
@@ -27,14 +26,17 @@ if (argv.h) {
 var App = function () {
   this.expose  = new ExposePort(8000);
   this.proxy = new ProxyServer(5901);
-  this.protoServer = this.proxy.getProto();
-  this.protoClient = this.expose.getProto();
-  this.protoClient.on('packet', (packet) => {
-    this.protoServer.packet(packet);
-  });
-  this.protoServer.on('packet', (packet) => {
-    this.protoClient.packet(packet);
-  });
+  this.protoServer = new Protocol();
+  this.protoClient = new Protocol();
+
+  this.protoClient.on('data', this.expose.onData.bind(this.expose));
+  this.expose.on('data', this.protoClient.rawData.bind(this.protoClient));
+  this.protoClient.on('packet', this.protoServer.packet.bind(this.protoServer));
+
+  this.protoServer.on('data', this.proxy.onData.bind(this.proxy));
+  this.proxy.on('data', this.protoServer .rawData.bind(this.protoServer));
+  this.protoServer.on('packet', this.protoClient.packet.bind(this.protoClient));
+
 };
 
 

@@ -1,11 +1,17 @@
-//ToDo:
-// 1. Echo type of client
 var PORT = 3478;
 var HOST = '216.93.246.18';
 
 const net = require('net');
+const debug = require('debug')('main');
+
+const ExposePort = require('./lib/ExposePort');
+const ProxyServer = require('./lib/ProxyPortServer');
+
 const Stun = require('./lib/stunclient');
 const Protocol = require('./lib/proto');
+
+const Common = require('./lib/Common');
+const getRand = Common.getRand;
 
 const argv = require('minimist')(process.argv.slice(2), {
   alias: {
@@ -25,9 +31,6 @@ if (argv.h || !argv._.length) {
   process.exit(1);
 }
 
-var getRand = function () {
-  return (Math.random() * (0xff)) & 0xff;
-};
 
 var App = function () {
   var self = this;
@@ -68,7 +71,8 @@ var App = function () {
           self.ids.push(id);
       }
       if (self.ids.length) {
-        self.getIp().then(() => {
+        self.stun.getIp().then((ip) => {
+          self.ip = ip;
           self.sendIp();
         });
       }
@@ -199,18 +203,6 @@ App.prototype.expose = function () {
       }
       self.exposeSockets[data[1]].write(out);
     }
-  });
-};
-
-App.prototype.getIp = function () {
-  var self = this;
-  return new Promise(function (resolve, reject) {
-    self.stun.once('ip', function (ourip) {
-      console.log('Our ip:', ourip);
-      self.ip = ourip;
-      resolve(ourip);
-    });
-    self.stun.getIp();
   });
 };
 
