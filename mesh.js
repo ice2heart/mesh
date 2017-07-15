@@ -39,9 +39,7 @@ var App = function () {
   this.clients = {};
   this.stun = new Stun(HOST, PORT);
   this.proto = new Protocol();
-  this.proto.on('packet', (packet) => {
-    this.stun.send(packet);
-  });
+  this.proto.on('packet', this.stun.send.bind(this.stun));
 
   this.stun.on('connected', this.onConnected.bind(this));
   this.stun.on('disconnected', function () {
@@ -49,7 +47,7 @@ var App = function () {
 
   this.commandSocket = new net.Socket();
   this.commandSocket.on('data', function (data) {
-    console.log('Received: ' + data.length);
+    debug('commandSocket: Received: ' + data.length);
     var type = data[0];
     var sip1, sip2, sip3, sip4, sport;
     switch (type) {
@@ -60,7 +58,6 @@ var App = function () {
       sip4 = data[4];
       sport = data.readUInt16BE(5);
       var newip = `${sip1}.${sip2}.${sip3}.${sip4}`;
-      console.log(`${newip}:${sport}`);
       self.stun.setClient(newip, sport);
       break;
     case 3:
@@ -82,10 +79,9 @@ var App = function () {
   });
 
   this.commandSocket.on('close', function () {
-    console.log('Connection closed');
+    debug('Connection closed');
   });
   this.commandSocket.connect(argv.p, argv._[0], () => {
-    //this.commandSocket.connect(7007, '192.168.88.102', () => {
     console.log('Connected');
     var buff = new Buffer(3);
     buff[0] = 0; //comand register
@@ -99,13 +95,20 @@ var App = function () {
 };
 
 App.prototype.onConnected = function () {
-  console.log('Connected');
+  debug('Stun: Connected');
   if (argv.c) {
-    this.connect();
+    //this.connect();
+    this.outboundConnection = new ProxyServer(argv.c);
+
   } //end of c
   if (argv.e) {
-    this.expose();
+    this.outboundConnection = new Expose(argv.e);
+    //this.expose();
   }
+  this.stun.on('data', this.proto.packet.bind(this.proto));
+  this.proto.on('data', this.outboundConnection.onData.bind(this.outboundConnection));
+  this.outboundConnection.on('data', this.proto.rawData.bind(this.proto));
+
 };
 
 App.prototype.connect = function () {
@@ -145,9 +148,7 @@ App.prototype.connect = function () {
     data.copy(out, 0, 2);
     self.clients[data[1]].write(out);
   });
-  self.stun.on('data', (data) => {
-    self.proto.packet(data);
-  });
+
   self.exposeServer.on('error', (err) => {
     throw err;
   });
