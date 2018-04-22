@@ -2,7 +2,7 @@
   "name": "controller",
   "version": "0.0.1",
   "description": "TCP over UDP peer 2 peer",
-  "main": "server.js",
+  "main": "mesh.js",
   "scripts": {
     "test": "mocha"
   },

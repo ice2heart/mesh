@@ -43,6 +43,7 @@ var App = function () {
 
   this.stun.on('connected', this.onConnected.bind(this));
   this.stun.on('disconnected', function () {
+    this.stun.close();
   });
 
   this.commandSocket = new net.Socket();
@@ -102,7 +103,7 @@ App.prototype.onConnected = function () {
 
   } //end of c
   if (argv.e) {
-    this.outboundConnection = new Expose(argv.e);
+    this.outboundConnection = new ExposePort(argv.e);
     //this.expose();
   }
   this.stun.on('data', this.proto.packet.bind(this.proto));
