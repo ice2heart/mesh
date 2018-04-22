@@ -141,7 +141,7 @@ App.prototype.connect = function () {
     });
   });
   self.proto.on('data', (data) => {
-    /*if (data.length > 2 || data[0] !== 0x11 || !self.clients[data[1]]) {
+    /*if (data.length < 2 || data[0] !== 0x11 || !self.clients[data[1]]) {
       return;
     }*/
     var out = new Buffer(data.length - 2);
