@@ -55,4 +55,34 @@ describe('Protocol', function () {
       p2.packet(pp);
     }
   });
+  it ('remove packets', function(){
+
+    /// ARE BROKEN!
+    p2.on('data', (data) => {
+      console.log(Buffer.compare(testData, data));
+      expect(Buffer.compare(testData, data)).to.equal(0);
+    });
+    /*p.on('packet', (data) => {
+      console.log(data);
+    });*/
+    let i = 0;
+    p.rawData(testData);
+    var unsort = [];
+    for (let pp of p.packets) {
+      console.log(pp);
+      unsort.push(pp.buff);
+    }
+    p2.packet(unsort.shift());
+    shuffle(unsort);
+
+    for (let pp of unsort) {
+      i = i + 1;
+      if (i != 2){
+        console.log(i);
+
+        p2.packet(pp);
+      }
+      
+    }
+  });
 });
